@@ -61,6 +61,10 @@ summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);padding
 .note{font-size:13px;color:var(--muted);margin-top:10px}
 #st{margin-top:12px;min-height:20px}
 #out{display:none}
+.why{display:block;color:var(--muted);font-size:13px;font-weight:500;margin-top:2px}
+.seg{display:none;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;margin-bottom:18px;width:max-content;position:sticky;top:12px;z-index:5}
+.seg button{border:0;background:none;color:var(--muted);font:inherit;font-weight:700;padding:9px 20px;border-radius:10px;cursor:pointer}
+.seg button.on{background:var(--red);color:#fff}
 .chip{display:inline-block;background:var(--soft);border-radius:20px;padding:6px 13px;margin:0 6px 8px 0;font-size:14px;font-weight:500}
 .t{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .t:last-child{border-bottom:0;padding-bottom:0}
@@ -87,6 +91,7 @@ ul.pts .ic{margin-top:3px;color:var(--warn)}
 .nav button{width:auto;white-space:nowrap;padding:9px 13px;font-size:14px}
 .main{padding:22px 14px 80px}
 [id^=sec-]{scroll-margin-top:76px}
+.seg{top:70px}
 h1{font-size:26px}
 .card{padding:18px;border-radius:16px}
 }
@@ -132,8 +137,14 @@ h1{font-size:26px}
 <section class="card" id="sec-input">
 <div class="ch"><div class="tile"><svg class="ic"><use href="#i-file"/></svg></div><h2>Naskah video<small>Inggris atau Indonesia, terdeteksi otomatis. Tag seperti [excited] boleh ikut.</small></h2></div>
 <textarea id="sc" placeholder="Tempel naskah narasi di sini..."></textarea>
+<label for="sc2">Naskah bahasa kedua (opsional)</label>
+<textarea id="sc2" style="min-height:90px" placeholder="Punya versi bahasa lain, misalnya Indonesia atau Inggris? Tempel di sini."></textarea>
+<div class="note">Tool tidak menerjemahkan. Ia membuat satu paket SEO untuk tiap naskah yang kamu isi.</div>
 <label for="kw">Kata kunci utama (terisi otomatis, boleh diganti)</label>
 <div class="fld"><svg class="ic"><use href="#i-search"/></svg><input id="kw" type="text" autocapitalize="off" autocorrect="off"></div>
+<label for="gk">Gemini API key (opsional, untuk hasil lebih akurat)</label>
+<div class="fld"><svg class="ic"><use href="#i-spark"/></svg><input id="gk" type="password" placeholder="AIza..." autocapitalize="off" autocorrect="off"></div>
+<div class="note" id="am"></div>
 <details>
 <summary>Nama seri dan kredit musik</summary>
 <label for="se">Nama seri</label>
@@ -146,6 +157,13 @@ h1{font-size:26px}
 </section>
 
 <div id="out">
+<div class="seg" id="seg"><button id="lt0" class="on">English</button><button id="lt1">Indonesia</button></div>
+<div class="note" id="segn" style="display:none;margin:-8px 0 18px">Tag hanya untuk bahasa utama. Versi bahasa kedua: tempel judul dan deskripsi di menu terjemahan YouTube Studio (Subtitles, Add language), atau posting terpisah di Facebook.</div>
+<section class="card warn" id="aic" style="display:none">
+<div class="ch"><div class="tile wn"><svg class="ic"><use href="#i-spark"/></svg></div><h2>Hasil riset AI<small>Gemini + Google Search</small></h2></div>
+<ul class="pts" id="fl"></ul>
+<details><summary>Lihat ringkasan riset</summary><div id="rb" class="note" style="white-space:pre-wrap;font-size:14px"></div></details>
+</section>
 <section class="card" id="sec-kw">
 <div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-search"/></svg></div><h2>Kata kunci yang diketik orang<small>Saran pencarian YouTube sesuai bahasa naskah</small></h2><span class="pill yt">YouTube</span></div>
 <div id="sg"></div>
@@ -342,7 +360,29 @@ function score(t,k){
   return Math.min(100,s);
 }
 
+var LASTT=[],LASTF=[],LASTB="",SNAPS=[],CUR=0,AIDEAD=false,AIERR="";
+function renderSugg(sugg){
+  var sg=$("sg");sg.innerHTML="";
+  if(!sugg.length){sg.innerHTML='<div class="note">Saran kata kunci tidak bisa diambil (internet bermasalah atau halaman dibuka dari preview). Hasil lain tetap dibuat dari naskahmu.</div>'}
+  for(var q=0;q<sugg.length;q++){var sp=document.createElement("span");sp.className="chip";sp.textContent=sugg[q];sg.appendChild(sp)}
+
+}
+function renderTitles(titles){
+  var ti=$("ti");ti.innerHTML="";
+  for(var z=0;z<titles.length;z++){
+    (function(o){
+      var row=document.createElement("div");row.className="t";
+      var cls=o.s>=75?"hi":(o.s>=55?"mid":"lo");
+      row.innerHTML='<span class="badge '+cls+'">'+o.s+'</span><span class="x">'+esc(o.t)+(o.why?'<small class="why">'+esc(o.why)+'</small>':'')+'</span>';
+      var b=document.createElement("button");b.className="sm";b.innerHTML='<svg class="ic"><use href="#i-copy"/></svg><span>Salin</span>';
+      b.onclick=function(){copyText(o.t,b)};
+      row.appendChild(b);ti.appendChild(row);
+    })(titles[z]);
+  }
+
+}
 function build(text,sents){
+  LASTF=[];LASTB="";
   var E=K,series=$("se").value.replace(/^\s+|\s+$/g,""),music=$("mu").value.replace(/^\s+|\s+$/g,""),L=LGX;
   var sec=[];
   for(var i=0;i<ents.length&&sec.length<2;i++){
@@ -424,21 +464,8 @@ function build(text,sents){
   $("fh").value=fh.join(" ");
   $("fn").textContent=fcap.length+" karakter. Kira-kira 125 huruf pertama (baris pembuka, "+fo.length+" huruf) yang tampil sebelum tombol selengkapnya.";
 
-  var sg=$("sg");sg.innerHTML="";
-  if(!sugg.length){sg.innerHTML='<div class="note">Saran kata kunci tidak bisa diambil (internet bermasalah atau halaman dibuka dari preview). Hasil lain tetap dibuat dari naskahmu.</div>'}
-  for(var q=0;q<sugg.length;q++){var sp=document.createElement("span");sp.className="chip";sp.textContent=sugg[q];sg.appendChild(sp)}
-
-  var ti=$("ti");ti.innerHTML="";
-  for(var z=0;z<titles.length;z++){
-    (function(o){
-      var row=document.createElement("div");row.className="t";
-      var cls=o.s>=75?"hi":(o.s>=55?"mid":"lo");
-      row.innerHTML='<span class="badge '+cls+'">'+o.s+'</span><span class="x">'+esc(o.t)+'</span>';
-      var b=document.createElement("button");b.className="sm";b.innerHTML='<svg class="ic"><use href="#i-copy"/></svg><span>Salin</span>';
-      b.onclick=function(){copyText(o.t,b)};
-      row.appendChild(b);ti.appendChild(row);
-    })(titles[z]);
-  }
+  LASTT=titles;
+  renderSugg(sugg);renderTitles(titles);
 
   $("de").value=d;
   $("dc").textContent=d.length+" dari 5000 karakter. Baris pembuka ("+open.length+" huruf) adalah bagian yang tampil di hasil pencarian.";
@@ -447,7 +474,7 @@ function build(text,sents){
   $("ht").value=hs.join(" ");
   $("ct1").value=titles[0].t;
   $("cd1").value=d;
-  $("out").style.display="block";document.body.className="has-out";setTimeout(function(){goTo("sec-title")},80);
+  $("out").style.display="block";
   runCheck();
 }
 
@@ -468,43 +495,222 @@ function runCheck(){
   $("cr").innerHTML=res.join("");
 }
 
+$("gk").value=load("yss2_gkey","");updAM();$("gk").oninput=updAM;
 $("se").value=load("yss2_series","");
 $("mu").value=load("yss2_music","");
 $("se").onchange=function(){store("yss2_series",this.value)};
 $("mu").onchange=function(){store("yss2_music",this.value)};
 
-$("go").onclick=function(){
-  var text=cleanScript($("sc").value);
-  if(text.length<30){$("st").textContent="Tempel naskah videonya dulu ya.";return}
+function snapNow(){
+  return {K:K,ai:!!LASTB,facts:LASTF,brief:LASTB,sugg:sugg.slice(),titles:LASTT,de:$("de").value,dc:$("dc").textContent,tg:$("tg").value,tc:$("tc").textContent,ht:$("ht").value,fc:$("fc").value,fn:$("fn").textContent,fh:$("fh").value,ct1:$("ct1").value,cd1:$("cd1").value};
+}
+function saveCur(){
+  var s=SNAPS[CUR];if(!s)return;
+  s.de=$("de").value;s.tg=$("tg").value;s.ht=$("ht").value;s.fc=$("fc").value;s.fh=$("fh").value;s.ct1=$("ct1").value;s.cd1=$("cd1").value;
+}
+function show(i){
+  var s=SNAPS[i];if(!s)return;
+  CUR=i;K=s.K;
+  renderSugg(s.sugg);renderTitles(s.titles);
+  $("de").value=s.de;$("dc").textContent=s.dc;$("tg").value=s.tg;$("tc").textContent=s.tc;$("ht").value=s.ht;
+  $("fc").value=s.fc;$("fn").textContent=s.fn;$("fh").value=s.fh;$("ct1").value=s.ct1;$("cd1").value=s.cd1;
+  $("lt0").className=i===0?"on":"";$("lt1").className=i===1?"on":"";
+  renderAI(s);
+  runCheck();
+}
+$("lt0").onclick=function(){saveCur();show(0)};
+$("lt1").onclick=function(){saveCur();show(1)};
+
+
+var MODELS=["gemini-3.5-flash","gemini-3-flash-preview","gemini-2.5-flash"];
+function gKey(){return $("gk").value.replace(/\s+/g,"")}
+function updAM(){$("am").textContent=gKey()?"Mode AI aktif: riset Google lalu Gemini menulis SEO dari naskahmu. Key hanya tersimpan di perangkat ini.":"Mode template. Isi Gemini API key supaya hasil dibuat AI dari riset, bukan template."}
+function gem(prompt,o){
+  var idx=0;
+  function go(){
+    var body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:o.temp}};
+    if(o.search)body.tools=[{google_search:{}}];
+    if(o.json)body.generationConfig.responseMimeType="application/json";
+    return fetch("https://generativelanguage.googleapis.com/v1beta/models/"+MODELS[idx]+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":gKey()},body:JSON.stringify(body)}).then(function(r){
+      return r.json().then(function(j){
+        if(!r.ok){
+          var m=(j&&j.error&&j.error.message)||("HTTP "+r.status);
+          if((r.status===404||(r.status===400&&/model/i.test(m)&&!/key/i.test(m)))&&idx<MODELS.length-1){idx++;return go()}
+          var e=new Error(m);e.status=r.status;throw e;
+        }
+        var t="",ps=[];
+        try{ps=j.candidates[0].content.parts}catch(x){}
+        for(var i=0;i<ps.length;i++){if(ps[i].text)t+=ps[i].text}
+        if(!t)throw new Error("Jawaban kosong dari Gemini");
+        return t;
+      });
+    });
+  }
+  return go();
+}
+function errMsg(e){
+  var m=String(e&&e.message||e);
+  if(e&&e.status===429)return "kuota Gemini habis atau terlalu cepat, coba lagi sebentar";
+  if(/api key|API_KEY|invalid/i.test(m)&&e.status)return "API key tidak valid";
+  if(e&&e.status===403)return "key ditolak (cek pembatasan key di Google AI Studio)";
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m))return "tidak bisa menghubungi Gemini (cek internet)";
+  return m.slice(0,120);
+}
+function parseJ(t){
+  t=t.replace(/```json|```/g,"");
+  var i=t.indexOf("{"),j=t.lastIndexOf("}");
+  return JSON.parse(t.slice(i,j+1));
+}
+function prompt1(text,lang,sg){
+  return "You are a YouTube and Facebook SEO researcher. Below is the script of a short vertical video (script language: "+(lang==="id"?"Indonesian":"English")+"). Use Google Search to do real research, then reply in plain text, under 350 words, with these sections:\nTOPIC: exactly what this video is about and its specific angle.\nFACT CHECK: main factual claims in the script that look wrong, outdated or unverifiable (write NONE if all fine).\nSEARCH PHRASES: concrete phrases people really search for on this topic"+(lang==="id"?" (Indonesian and English)":"")+".\nCOMPETITOR ANGLES: how the top YouTube and Shorts videos on this topic word their titles.\nUNIQUE HOOK: what makes THIS script different from those.\n\nReal YouTube autocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nSCRIPT:\n"+text.slice(0,6000);
+}
+function prompt2(text,lang,brief,sg){
+  var Ln=lang==="id"?"Indonesian":"English";
+  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief.\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF:\n"+brief+"\n\nSCRIPT:\n"+text.slice(0,6000);
+}
+function hz(x,max){
+  var o=[],sn={};x=x||[];
+  for(var k=0;k<x.length&&o.length<max;k++){
+    var h="#"+String(x[k]).replace(/[#\s]+/g,"");
+    if(h.length>1&&!sn[h.toLowerCase()]){sn[h.toLowerCase()]=1;o.push(h)}
+  }
+  return o;
+}
+function applyAI(r,L){
+  var series=$("se").value.replace(/^\s+|\s+$/g,""),music=$("mu").value.replace(/^\s+|\s+$/g,"");
+  var E=String(r.keyword||K).replace(/^\s+|\s+$/g,"")||K;K=E;
+  var titles=[],seen={},a=r.titles||[],i;
+  for(i=0;i<a.length;i++){
+    var t=String(a[i].t||a[i]||"").replace(/^\s+|\s+$/g,"");
+    if(!t||t.length>100||seen[t.toLowerCase()])continue;
+    seen[t.toLowerCase()]=1;titles.push({t:t,s:score(t,E),why:a[i].why||""});
+  }
+  if(!titles.length)throw new Error("judul dari AI kosong");
+  var tags=[],ts={},len=0,tl=[E].concat(r.tags||[]);
+  for(i=0;i<tl.length;i++){
+    var tg=String(tl[i]).toLowerCase().replace(/^#/,"").replace(/^\s+|\s+$/g,"");
+    if(!tg||ts[tg])continue;
+    if(len+tg.length+2>480)break;
+    ts[tg]=1;tags.push(tg);len+=tg.length+2;
+  }
+  var hs=hz(r.hashtags,5);
+  if(hs.length<3&&!/#shorts/i.test(hs.join(" ")))hs.push("#Shorts");
+  var fh=hz(r.fbHashtags,5);
+  var desc=String(r.description||"").replace(/^\s+|\s+$/g,"");
+  if(!desc)throw new Error("deskripsi dari AI kosong");
+  var cta=/subscribe|langganan|ikuti|follow/i.test(desc),tail=[];
+  if(series)tail.push(L.ser+series);
+  if(!cta)tail.push(L.sub);
+  var parts=[desc];
+  if(tail.length)parts.push(tail.join("\n"));
+  if(music)parts.push(music);
+  parts.push(hs.join(" "));
+  var d=parts.join("\n\n"),open=desc.slice(0,150);
+  var fp=[String(r.fbCaption||desc.slice(0,300)).replace(/^\s+|\s+$/g,"")];
+  if(music){
+    var ml=music.split("\n"),mk=[];
+    for(i=0;i<ml.length;i++){if(ml[i].indexOf("http")===-1)mk.push(ml[i])}
+    if(mk.length)fp.push(mk.join("\n"));
+  }
+  fp.push(fh.join(" "));
+  var fcap=fp.join("\n\n");
+  LASTT=titles;LASTF=r.factNotes||[];
+  renderSugg(sugg);renderTitles(titles);
+  $("de").value=d;
+  $("dc").textContent=d.length+" dari 5000 karakter. Baris pembuka ("+open.length+" huruf) adalah bagian yang tampil di hasil pencarian.";
+  $("tg").value=tags.join(", ");
+  $("tc").textContent=tags.length+" tag, "+tags.join(", ").length+" dari 500 karakter. Tag hanya berpengaruh kecil; judul dan deskripsi jauh lebih penting.";
+  $("ht").value=hs.join(" ");
+  $("fc").value=fcap;$("fh").value=fh.join(" ");
+  $("fn").textContent=fcap.length+" karakter. Kira-kira 125 huruf pertama yang tampil sebelum tombol selengkapnya.";
+  $("ct1").value=titles[0].t;$("cd1").value=d;
+  $("out").style.display="block";
+  runCheck();
+}
+function renderAI(s){
+  var c=$("aic");
+  if(!s.ai){c.style.display="none";return}
+  c.style.display="block";
+  var h="",f=s.facts||[];
+  if(!f.length)h="<li><svg class=\"ic\"><use href=\"#i-dot\"/></svg><span>Riset tidak menandai klaim yang salah di naskah ini. Ini bukan jaminan, tetap cek angka pentingnya.</span></li>";
+  for(var i=0;i<f.length;i++){h+="<li><svg class=\"ic\"><use href=\"#i-dot\"/></svg><span>"+esc(f[i])+"</span></li>"}
+  $("fl").innerHTML=h;$("rb").textContent=s.brief||"";
+}
+function runOne(text,hint,force,cb){
   var sents=sentences(text);
   LANG=detectLang(text);LGX=LG[LANG];
   ents=detect(text,sents);
-  var auto=ents[0]||"";
+  var k=(force||(hint&&text.toLowerCase().indexOf(hint.toLowerCase())>-1))?hint:(ents[0]||"");
+  if(!k){cb(null);return}
+  K=k;
+  var qs=LGX.q(K),left=qs.length,got=[],lang=LANG,L=LGX,myEnts=ents.slice();
+  function done(){var s=snapNow();s.lang=lang;s.ents=myEnts;cb(s)}
+  for(var i=0;i<qs.length;i++){
+    fetchSugg(qs[i],function(r){
+      got=got.concat(r);left--;
+      if(left!==0)return;
+      var seen={},o=[],kl=K.toLowerCase();
+      for(var j=0;j<got.length;j++){
+        var g=got[j].toLowerCase();
+        if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
+      }
+      sugg=o.slice(0,20);
+      if(!gKey()||AIDEAD){build(text,sents);done();return}
+      $("st").textContent="Riset topik di Google ("+langName(lang)+")...";
+      var brief="";
+      gem(prompt1(text,lang,sugg),{search:true,temp:0.3}).then(function(b){
+        brief=b;
+        $("st").textContent="Menulis judul, deskripsi, dan tag ("+langName(lang)+")...";
+        return gem(prompt2(text,lang,b,sugg),{json:true,temp:0.8});
+      }).then(function(t){
+        var r2=parseJ(t);
+        LGX=L;K=k;
+        build(text,sents);
+        applyAI(r2,L);
+        LASTB=brief||"(ringkasan kosong)";
+        done();
+      }).catch(function(e){
+        AIDEAD=true;AIERR=errMsg(e);
+        LGX=L;K=k;
+        build(text,sents);done();
+      });
+    });
+  }
+}
+function langName(l){return l==="id"?"Indonesia":"English"}
+function finish(list){
+  SNAPS=[];
+  for(var i=0;i<list.length;i++){if(list[i])SNAPS.push(list[i])}
+  $("go").disabled=false;
+  if(!SNAPS.length){$("st").textContent="Kata kunci naskah kedua tidak terdeteksi.";return}
+  var multi=SNAPS.length>1,n0=langName(SNAPS[0].lang),n1=multi?langName(SNAPS[1].lang):"";
+  if(multi&&n0===n1){n0+=" 1";n1+=" 2"}
+  $("lt0").textContent=n0;$("lt1").textContent=n1;
+  $("seg").style.display=multi?"flex":"none";
+  $("segn").style.display=multi?"block":"none";
+  var info="",ai=SNAPS[0].ai;
+  for(var j=0;j<SNAPS.length;j++){info+=(j?" | ":"")+langName(SNAPS[j].lang)+": "+SNAPS[j].ents.slice(0,3).join(", ")}
+  $("st").textContent=(AIERR?"AI gagal ("+AIERR+"), memakai versi template. ":(ai?"Dibuat AI dari riset Google. ":"Selesai. "))+info;
+  $("out").style.display="block";document.body.className="has-out";
+  show(0);
+  setTimeout(function(){goTo(multi?"seg":"sec-title")},80);
+}
+$("go").onclick=function(){
+  var t1=cleanScript($("sc").value),t2=cleanScript($("sc2").value);
+  if(t1.length<30){$("st").textContent="Tempel naskah videonya dulu ya.";return}
+  var e1=detect(t1,sentences(t1)),auto=e1[0]||"";
   var cur=$("kw").value.replace(/^\s+|\s+$/g,"");
   if(!cur||cur===lastAuto){cur=auto;$("kw").value=auto}
   lastAuto=auto;
   if(!cur){$("st").textContent="Kata kunci utama belum terdeteksi. Ketik manual di kolom kata kunci.";return}
-  K=cur;
+  AIDEAD=false;AIERR="";store("yss2_gkey",$("gk").value);
   store("yss2_series",$("se").value);store("yss2_music",$("mu").value);
   $("st").textContent="Mengambil saran kata kunci dari YouTube...";
   $("go").disabled=true;
-  var qs=LGX.q(K),left=qs.length,got=[];
-  for(var i=0;i<qs.length;i++){
-    fetchSugg(qs[i],function(r){
-      got=got.concat(r);left--;
-      if(left===0){
-        var seen={},o=[],kl=K.toLowerCase();
-        for(var j=0;j<got.length;j++){
-          var g=got[j].toLowerCase();
-          if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
-        }
-        sugg=o.slice(0,20);
-        $("st").textContent="Bahasa naskah: "+(LANG==="id"?"Indonesia":"Inggris")+". Terdeteksi: "+ents.slice(0,4).join(", ")+(sugg.length?". Selesai.":". Selesai (tanpa saran kata kunci).");
-        $("go").disabled=false;
-        build(text,sents);
-      }
-    });
-  }
+  runOne(t1,cur,true,function(s1){
+    if(t2.length<30){finish([s1]);return}
+    runOne(t2,cur,false,function(s2){finish([s1,s2])});
+  });
 };
 $("cd").onclick=function(){copyText($("de").value,this)};
 $("ct").onclick=function(){copyText($("tg").value,this)};
