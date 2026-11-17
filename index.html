@@ -177,7 +177,7 @@ h1{font-size:26px}
 <div class="seg" id="seg"><button id="lt0" class="on">English</button><button id="lt1">Indonesia</button></div>
 <div class="note" id="segn" style="display:none;margin:-8px 0 18px">Tag hanya untuk bahasa utama. Versi bahasa kedua: tempel judul dan deskripsi di menu terjemahan YouTube Studio (Subtitles, Add language), atau posting terpisah di Facebook.</div>
 <section class="card warn" id="aic" style="display:none">
-<div class="ch"><div class="tile wn"><svg class="ic"><use href="#i-spark"/></svg></div><h2>Hasil riset AI<small>Gemini + Google Search</small></h2></div>
+<div class="ch"><div class="tile wn"><svg class="ic"><use href="#i-spark"/></svg></div><h2>Hasil riset AI<small id="aisub">Gemini + Google Search</small></h2></div>
 <ul class="pts" id="fl"></ul>
 <details><summary>Lihat ringkasan riset</summary><div id="rb" class="note" style="white-space:pre-wrap;font-size:14px"></div></details>
 </section>
@@ -638,9 +638,9 @@ function qinfo(j,m){
   return{daily:/per ?day|daily/i.test(t),ground:/ground|search/i.test(t),ret:ret};
 }
 function gem(prompt,o){
-  var idx=0,MODELS=modelChain(),ERRS=[],Q429=[],tries=0;
+  var idx=0,MODELS=modelChain(),ERRS=[],Q429=[],tries=0,wanted=!!o.search,NOTE="\n\nNOTE: Google Search is unavailable for this request. Do not claim to have looked at real videos or live data; label SEARCH PHRASES and COMPETITOR ANGLES as estimates from your own knowledge.";
   function go(){
-    var body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:o.temp}};
+    var body={contents:[{role:"user",parts:[{text:prompt+(wanted&&!o.search?NOTE:"")}]}],generationConfig:{temperature:o.temp}};
     if(o.search)body.tools=[{google_search:{}}];
     if(o.json)body.generationConfig.responseMimeType="application/json";
     return fetch("https://generativelanguage.googleapis.com/v1beta/models/"+MODELS[idx]+":generateContent?key="+encodeURIComponent(gKey()),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(function(r){
@@ -692,7 +692,7 @@ function prompt1(text,lang,sg,tgt){
 }
 function prompt2(text,lang,brief,sg,tgt){
   var Ln=(tgt||lang)==="id"?"Indonesian":"English";
-  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief."+(tgt&&tgt!==lang?" The script is in "+(lang==="id"?"Indonesian":"English")+": write every output in "+Ln+", adapting naturally for "+Ln+"-speaking viewers (not word for word) and keeping every fact from the script.":"")+"\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF:\n"+brief+(CURHEAD?"\n\nWORKING TITLE OF THE EPISODE: "+CURHEAD:"")+"\n\nSCRIPT:\n"+text.slice(0,6000);
+  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief."+(tgt&&tgt!==lang?" The script is in "+(lang==="id"?"Indonesian":"English")+": write every output in "+Ln+", adapting naturally for "+Ln+"-speaking viewers (not word for word) and keeping every fact from the script.":"")+"\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF"+(NOSEARCH?" (produced WITHOUT Google Search; treat search phrases and competitor angles as estimates, not observed data)":"")+":\n"+brief+(CURHEAD?"\n\nWORKING TITLE OF THE EPISODE: "+CURHEAD:"")+"\n\nSCRIPT:\n"+text.slice(0,6000);
 }
 function hz(x,max){
   var o=[],sn={};x=x||[];
@@ -763,10 +763,11 @@ function renderAI(s){
   var c=$("aic");
   if(!s.ai){c.style.display="none";return}
   c.style.display="block";
+  $("aisub").textContent=s.nosearch?"Gemini tanpa pencarian Google":"Gemini + Google Search";
   var h="",f=s.facts||[];
-  if(!f.length)h="<li><svg class=\"ic\"><use href=\"#i-dot\"/></svg><span>Riset tidak menandai klaim yang salah di naskah ini. Ini bukan jaminan, tetap cek angka pentingnya.</span></li>";
+  if(!f.length)h="<li><svg class=\"ic\"><use href=\"#i-dot\"/></svg><span>"+(s.nosearch?"AI tidak menandai klaim yang salah, tapi tanpa pencarian Google ini hanya berdasarkan pengetahuan model. Cek tanggal dan angka pentingnya sendiri.":"Riset tidak menandai klaim yang salah di naskah ini. Ini bukan jaminan, tetap cek angka pentingnya.")+"</span></li>";
   for(var i=0;i<f.length;i++){h+="<li><svg class=\"ic\"><use href=\"#i-dot\"/></svg><span>"+esc(f[i])+"</span></li>"}
-  $("fl").innerHTML=h;$("rb").textContent=s.brief||"";
+  $("fl").innerHTML=h;$("rb").textContent=(s.nosearch?"CATATAN: tanpa pencarian Google. Bagian SEARCH PHRASES dan COMPETITOR ANGLES di bawah adalah perkiraan model, bukan data nyata dari YouTube.\n\n":"")+(s.brief||"");
 }
 function runOne(text,hint,force,cb,head){
   CURHEAD=head||"";
