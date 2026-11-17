@@ -130,7 +130,7 @@ h1{font-size:26px}
 <p class="lead">Tempel naskah, tekan satu tombol. Judul, deskripsi, tag, dan caption dibuat dari isi naskahmu untuk penonton seluruh dunia.</p>
 
 <section class="card" id="sec-input">
-<div class="ch"><div class="tile"><svg class="ic"><use href="#i-file"/></svg></div><h2>Naskah video<small>Bahasa Inggris. Tag seperti [excited] boleh ikut.</small></h2></div>
+<div class="ch"><div class="tile"><svg class="ic"><use href="#i-file"/></svg></div><h2>Naskah video<small>Inggris atau Indonesia, terdeteksi otomatis. Tag seperti [excited] boleh ikut.</small></h2></div>
 <textarea id="sc" placeholder="Tempel naskah narasi di sini..."></textarea>
 <label for="kw">Kata kunci utama (terisi otomatis, boleh diganti)</label>
 <div class="fld"><svg class="ic"><use href="#i-search"/></svg><input id="kw" type="text" autocapitalize="off" autocorrect="off"></div>
@@ -147,7 +147,7 @@ h1{font-size:26px}
 
 <div id="out">
 <section class="card" id="sec-kw">
-<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-search"/></svg></div><h2>Kata kunci yang diketik orang<small>Saran pencarian YouTube, bahasa Inggris (AS)</small></h2><span class="pill yt">YouTube</span></div>
+<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-search"/></svg></div><h2>Kata kunci yang diketik orang<small>Saran pencarian YouTube sesuai bahasa naskah</small></h2><span class="pill yt">YouTube</span></div>
 <div id="sg"></div>
 <div class="note">Ini menunjukkan apa yang diketik orang, bukan jumlah pencarian.</div>
 </section>
@@ -205,8 +205,6 @@ h1{font-size:26px}
 
 <script>
 var $=function(i){return document.getElementById(i)};
-var DEF_SERIES="Forgotten History in Under a Minute";
-var DEF_MUSIC='Music: "Sneaky Adventure" by Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/';
 var K="",sugg=[],lastAuto="",ents=[];
 
 var STOP={};
@@ -268,7 +266,7 @@ function sentences(t){
 }
 function stripEnd(s){return s.replace(/[.!?\u2026\s]+$/,"")}
 function shorten(s,max){
-  s=stripEnd(s);
+  s=s.replace(/[.\u2026\s]+$/,"");
   if(s.length<=max)return s;
   var cut=s.substring(0,max),best=-1,seps=[" \u2014",",",":"," -"];
   for(var i=0;i<seps.length;i++){var p=cut.lastIndexOf(seps[i]);if(p>best)best=p}
@@ -278,14 +276,16 @@ function shorten(s,max){
 }
 
 function detect(text,sents){
-  var count={},first={},order=0;
+  var count={},first={},order=0,SKIP={youtube:1,facebook:1,instagram:1,tiktok:1,tv:1};
   for(var i=0;i<sents.length;i++){
-    var runs=sents[i].match(/[A-Z][a-z]+(?:\s[A-Z][a-z]+)*/g)||[];
-    for(var j=0;j<runs.length;j++){
-      var w=runs[j].split(" ");
+    var re=/[A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)*/g,m;
+    while((m=re.exec(sents[i]))){
+      var orig=m[0].split(" "),w=orig.slice();
       while(w.length&&STOP[w[0].toLowerCase()])w.shift();
+      if(m.index===0&&w.length&&w[0]===orig[0]&&!/^[A-Z]{2,}$/.test(w[0]))w.shift();
       if(!w.length)continue;
       var key=w.join(" ");
+      if(SKIP[key.toLowerCase()])continue;
       if(w.length===1&&text.indexOf(" "+key.toLowerCase()+" ")>-1)continue;
       if(!count[key]){count[key]=0;first[key]=order++}
       count[key]++;
@@ -312,52 +312,71 @@ function fetchSugg(q,cb){
   };
   s.onerror=function(){end([])};
   setTimeout(function(){end([])},7000);
-  s.src="https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&hl=en&gl=us&q="+encodeURIComponent(q)+"&jsonp="+name;
+  s.src="https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&hl="+LGX.hl+"&gl="+LGX.gl+"&q="+encodeURIComponent(q)+"&jsonp="+name;
   document.body.appendChild(s);
 }
 
+var IDW={yang:1,dan:1,di:1,ke:1,dari:1,untuk:1,ini:1,itu:1,adalah:1,tapi:1,kamu:1,bisa:1,atau:1,dengan:1,apa:1,siapa:1,sampai:1,lalu:1,tanpa:1,pada:1,juga:1,nggak:1,banget:1,sebenarnya:1,semuanya:1,saja:1,akan:1,sudah:1,tidak:1,karena:1};
+function detectLang(t){
+  var w=t.toLowerCase().match(/[a-z']+/g)||[],n=0;
+  for(var i=0;i<w.length;i++){if(IDW[w[i]])n++}
+  return(w.length&&n/w.length>0.07)?"id":"en";
+}
+var LG={
+en:{hl:"en",gl:"us",sub:"Subscribe for the next episode.",ser:"Series: ",cta:"Did you know this? Tell us in the comments.",
+ fol:function(s){return "Follow for the next episode"+(s?" of "+s:"")+"."},
+ tp:function(E){return [E+" Explained Simply","Everything You Need to Know About "+E,E+": The Story in Short"]},
+ q:function(K){var s=[""," history"," facts"," why"," how"," explained"," story"," what happened"],o=[];for(var i=0;i<s.length;i++)o.push(K+s[i]);return o}},
+id:{hl:"id",gl:"id",sub:"Subscribe supaya tidak ketinggalan episode berikutnya.",ser:"Seri: ",cta:"Kamu sudah tahu ini? Tulis di komentar.",
+ fol:function(s){return "Ikuti untuk episode berikutnya"+(s?" dari "+s:"")+"."},
+ tp:function(E){return ["Fakta Menarik tentang "+E,E+" Dijelaskan dengan Sederhana","Yang Perlu Kamu Tahu tentang "+E]},
+ q:function(K){return [K,K+" adalah","apa itu "+K,K+" untuk pemula","cara kerja "+K,K+" terbaru",K+" contoh",K+" manfaat"]}}};
+var LANG="en",LGX=LG.en;
 function score(t,k){
   var s=0,l=t.length,p=t.toLowerCase().indexOf(k.toLowerCase());
   if(l>=40&&l<=70)s+=35;else if(l>=30&&l<=80)s+=20;else s+=8;
   if(p===0)s+=30;else if(p>0&&p<=40)s+=22;else if(p>0)s+=10;
-  if(/(forgotten|untold|secret|why|how|mystery|hidden|whole|entire|never|history|story|explained)/i.test(t))s+=15;
+  if(/(forgotten|untold|secret|why|how|mystery|hidden|whole|entire|never|history|story|explained|rahasia|fakta|ternyata|jangan|cara|mudah|sederhana|dijelaskan|sebenarnya|siapa|apa|kenapa|mengapa|pernah)/i.test(t))s+=15;
   if(/\d/.test(t))s+=10;
   if(/[?:]/.test(t))s+=5;
   return Math.min(100,s);
 }
 
 function build(text,sents){
-  var E=K,E2=null,series=$("se").value.replace(/^\s+|\s+$/g,"")||DEF_SERIES,music=$("mu").value.replace(/^\s+|\s+$/g,"");
+  var E=K,series=$("se").value.replace(/^\s+|\s+$/g,""),music=$("mu").value.replace(/^\s+|\s+$/g,""),L=LGX;
   var sec=[];
   for(var i=0;i<ents.length&&sec.length<2;i++){
     var a1=ents[i].toLowerCase(),b1=E.toLowerCase();
     if(a1!==b1&&b1.indexOf(a1)===-1&&a1.indexOf(b1)===-1)sec.push(ents[i]);
   }
-  E2=sec[0]||null;
-  var hook=sents[0]||E,last=sents[sents.length-1]||E;
-
+  var E2=sec[0]||null;
+  var hook=sents[0]||E,hl=hook.replace(/[.\u2026\s]+$/,""),hasE=hook.toLowerCase().indexOf(E.toLowerCase())>-1;
+  function up(x){return x.charAt(0).toUpperCase()+x.slice(1)}
   var c=[];
-  c.push(E+": "+shorten(hook,70-E.length-2));
-  c.push(shorten(hook,70));
-  c.push(shorten(last,70));
-  c.push("The Forgotten History of "+E);
-  c.push("The Untold Story of "+E+(E2?", "+E2:""));
-  c.push(E+" Explained in Under a Minute");
-  c.push("What Happened to "+E+"?");
-  c.push(E+": "+series);
+  var full=hasE?hl:E+": "+hl;
+  if(full.length<=100){c.push(full);if(!hasE&&hl.length<=100)c.push(hl)}
+  else c.push(hasE?shorten(hook,70):E+": "+shorten(hook,70-E.length-2));
+  for(var q0=0,qn=0;q0<sents.length&&qn<2;q0++){
+    var sq=sents[q0].replace(/[.\u2026\s]+$/,"");
+    if(sq.indexOf("?")>-1&&sq.toLowerCase().indexOf(E.toLowerCase())>-1&&sq.length>=20&&sq.length<=100){c.push(up(sq.replace(/^(Tapi|But|And|Dan)\s+/i,"")));qn++}
+  }
+  if(sents.length>1){var last=sents[sents.length-1];if(last.length>=30&&last.toLowerCase().indexOf(E.toLowerCase())>-1)c.push(shorten(last,70))}
+  var tp=L.tp(E);for(var t0=0;t0<tp.length;t0++)c.push(tp[t0]);
+  if(series)c.push(E+": "+series);
   var seen={},titles=[];
   for(var a=0;a<c.length;a++){
     var tt=c[a];if(!tt||seen[tt.toLowerCase()]||tt.length>100)continue;
     seen[tt.toLowerCase()]=1;titles.push({t:tt,s:score(tt,E)});
   }
   titles.sort(function(x,y){return y.s-x.s});
+  titles=titles.slice(0,9);
 
   var tags=[],tseen={},len=0,all=[E];
   if(E2)all.push(E+" "+E2);
   all=all.concat(sugg.slice(0,12));
   for(var s2=0;s2<sec.length;s2++)all.push(sec[s2]);
-  var sl=series.toLowerCase().replace(/\s+in\s+under.*$/,"");
-  all=all.concat([sl,"history shorts","history facts","untold history","forgotten history"]);
+  if(series)all.push(series);
+  all.push("shorts");
   for(var m=0;m<all.length;m++){
     var tg=all[m].toLowerCase();
     if(tseen[tg])continue;
@@ -365,41 +384,41 @@ function build(text,sents){
     tseen[tg]=1;tags.push(tg);len+=tg.length+2;
   }
 
+  var sw=series.split(/\s+/),stag=series?"#"+(sw.length>1?sw[0]+sw[1]:sw[0]):"";
   var hs=[],hseen={};
-  function addH(h){var k2=h.toLowerCase();if(!hseen[k2]&&hs.length<5){hseen[k2]=1;hs.push(h)}}
+  function addH(h){var k2=h.toLowerCase();if(h&&!hseen[k2]&&hs.length<5){hseen[k2]=1;hs.push(h)}}
   addH("#"+E.replace(/\s+/g,""));
-  addH("#History");
+  if(sec[0])addH("#"+sec[0].replace(/\s+/g,""));
   addH("#Shorts");
-  var sw=series.split(/\s+/);if(sw.length>1)addH("#"+sw[0]+sw[1]);
-  if(E2)addH("#"+E2.replace(/\s+/g,""));
+  if(sec[1])addH("#"+sec[1].replace(/\s+/g,""));
+  addH(stag);
 
-  var open=(hook.toLowerCase().indexOf(E.toLowerCase())>-1)?hook:(E+": "+hook);
+  var open=hasE?hook:(E+": "+hook);
   if(open.length>150)open=shorten(open,148)+".";
-  var d=open+"\n\n";
-  var body="",rest=sents.slice(1);
+  var d=open+"\n\n",body="",rest=sents.slice(1);
   for(var r=0;r<rest.length;r++){if((body+" "+rest[r]).length>1400)break;body+=(body?" ":"")+rest[r]}
   if(body)d+=body+"\n\n";
-  d+=series+" - short true stories from history, told fast.\nSubscribe for the next episode.\n\n";
+  if(series)d+=L.ser+series+"\n";
+  d+=L.sub+"\n\n";
   if(music)d+=music+"\n\n";
   d+=hs.join(" ");
 
-  var fo=stripEnd(shorten(open,123))+".";
+  var fo=open.length<=123?open:shorten(open,123)+".";
   var fb2="",fr=sents.slice(1);
   for(var f=0;f<fr.length;f++){if((fb2+" "+fr[f]).length>330)break;fb2+=(fb2?" ":"")+fr[f]}
   var fcap=fo+"\n\n";
   if(fb2)fcap+=fb2+"\n\n";
-  fcap+="Did you know this story? Tell us in the comments.\nFollow for the next episode of "+series+".\n\n";
+  fcap+=L.cta+"\n"+L.fol(series)+"\n\n";
   if(music){
     var ml=music.split("\n"),mk=[];
     for(var u=0;u<ml.length;u++){if(ml[u].indexOf("http")===-1)mk.push(ml[u])}
     if(mk.length)fcap+=mk.join("\n")+"\n\n";
   }
   var fh=[],fseen={};
-  function addF(h){var k3=h.toLowerCase();if(!fseen[k3]&&fh.length<5){fseen[k3]=1;fh.push(h)}}
+  function addF(h){var k3=h.toLowerCase();if(h&&!fseen[k3]&&fh.length<5){fseen[k3]=1;fh.push(h)}}
   addF("#"+E.replace(/\s+/g,""));
-  addF("#History");
-  if(sw.length>1)addF("#"+sw[0]+sw[1]);
-  if(E2)addF("#"+E2.replace(/\s+/g,""));
+  for(var z0=0;z0<sec.length;z0++)addF("#"+sec[z0].replace(/\s+/g,""));
+  addF(stag);
   fcap+=fh.join(" ");
   $("fc").value=fcap;
   $("fh").value=fh.join(" ");
@@ -443,21 +462,22 @@ function runCheck(){
   add(d.length>=300,"Deskripsi "+d.length+" huruf (disarankan 300 atau lebih)");
   var h=d.match(/#[^\s#]+/g)||[];
   add(h.length>=3&&h.length<=5,"Jumlah hashtag "+h.length+" (ideal 3 sampai 5, jangan lebih dari 15)");
-  add(/subscribe/i.test(d),"Ada ajakan Subscribe");
+  add(/subscribe|langganan|ikuti|follow/i.test(d),"Ada ajakan Subscribe");
   var mu=$("mu").value.replace(/^\s+|\s+$/g,"");
   if(mu){add(d.indexOf(mu.split("\n")[0])>-1,"Kredit musik ada di deskripsi")}
   $("cr").innerHTML=res.join("");
 }
 
-$("se").value=load("yss_series",DEF_SERIES);
-$("mu").value=load("yss_music",DEF_MUSIC);
-$("se").onchange=function(){store("yss_series",this.value)};
-$("mu").onchange=function(){store("yss_music",this.value)};
+$("se").value=load("yss2_series","");
+$("mu").value=load("yss2_music","");
+$("se").onchange=function(){store("yss2_series",this.value)};
+$("mu").onchange=function(){store("yss2_music",this.value)};
 
 $("go").onclick=function(){
   var text=cleanScript($("sc").value);
   if(text.length<30){$("st").textContent="Tempel naskah videonya dulu ya.";return}
   var sents=sentences(text);
+  LANG=detectLang(text);LGX=LG[LANG];
   ents=detect(text,sents);
   var auto=ents[0]||"";
   var cur=$("kw").value.replace(/^\s+|\s+$/g,"");
@@ -465,27 +485,25 @@ $("go").onclick=function(){
   lastAuto=auto;
   if(!cur){$("st").textContent="Kata kunci utama belum terdeteksi. Ketik manual di kolom kata kunci.";return}
   K=cur;
-  store("yss_series",$("se").value);store("yss_music",$("mu").value);
+  store("yss2_series",$("se").value);store("yss2_music",$("mu").value);
   $("st").textContent="Mengambil saran kata kunci dari YouTube...";
   $("go").disabled=true;
-  var suf=[""," history"," facts"," why"," how"," explained"," story"," what happened"],left=suf.length,got=[];
-  for(var i=0;i<suf.length;i++){
-    (function(sx){
-      fetchSugg(K+sx,function(r){
-        got=got.concat(r);left--;
-        if(left===0){
-          var seen={},o=[],kl=K.toLowerCase();
-          for(var j=0;j<got.length;j++){
-            var g=got[j].toLowerCase();
-            if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
-          }
-          sugg=o.slice(0,20);
-          $("st").textContent="Terdeteksi dari naskah: "+ents.slice(0,4).join(", ")+(sugg.length?". Selesai.":". Selesai (tanpa saran kata kunci).");
-          $("go").disabled=false;
-          build(text,sents);
+  var qs=LGX.q(K),left=qs.length,got=[];
+  for(var i=0;i<qs.length;i++){
+    fetchSugg(qs[i],function(r){
+      got=got.concat(r);left--;
+      if(left===0){
+        var seen={},o=[],kl=K.toLowerCase();
+        for(var j=0;j<got.length;j++){
+          var g=got[j].toLowerCase();
+          if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
         }
-      });
-    })(suf[i]);
+        sugg=o.slice(0,20);
+        $("st").textContent="Bahasa naskah: "+(LANG==="id"?"Indonesia":"Inggris")+". Terdeteksi: "+ents.slice(0,4).join(", ")+(sugg.length?". Selesai.":". Selesai (tanpa saran kata kunci).");
+        $("go").disabled=false;
+        build(text,sents);
+      }
+    });
   }
 };
 $("cd").onclick=function(){copyText($("de").value,this)};
