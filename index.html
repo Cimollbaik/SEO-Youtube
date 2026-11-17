@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SEO Studio - YouTube dan Facebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--tx:#e8edf6;--side:#060b16;--ink2:#16233b;--paper:#0a111f;--card:#101a2e;--inp:#0b1424;--soft:#18253d;--line:#22314d;--muted:#8b9bb5;--red:#f0494c;--red2:#d63538;--blue:#5b8cff;--ok:#2bb67a;--warn:#e0a028}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--paper);color:var(--tx);font:16px/1.55 "Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.app{display:flex;min-height:100vh}
+.side{width:248px;flex:none;background:var(--side);border-right:1px solid #111b2f;color:#c9d3e3;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-self:flex-start;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 10px 20px}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--red);display:grid;place-items:center;color:#fff;flex:none}
+.logo .ic{width:22px;height:22px;fill:#fff;stroke:#fff}
+.brand b{display:block;white-space:nowrap;color:#fff;font-size:17px;line-height:1.2;letter-spacing:-.01em}
+.brand small{font-size:12px;color:#8fa0ba}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav .lb{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#6f819e;padding:16px 12px 6px;display:none}
+.has-out .nav .lb{display:block}
+.nav button{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;color:#c9d3e3;padding:11px 12px;border-radius:10px;font:inherit;font-size:15px;font-weight:500;text-align:left;cursor:pointer}
+.nav button.res{display:none}
+.has-out .nav button.res{display:flex}
+.nav button:hover{background:var(--ink2);color:#fff}
+.nav button.on{background:var(--ink2);color:#fff;box-shadow:inset 3px 0 0 var(--red)}
+.foot{margin-top:auto;padding:14px 12px 0;font-size:12px;color:#6f819e;border-top:1px solid #1f2d46}
+.main{flex:1;min-width:0;padding:36px 36px 90px}
+.col{max-width:820px;margin:0 auto}
+[id^=sec-]{scroll-margin-top:20px}
+h1{font-size:31px;line-height:1.2;margin:0 0 8px;letter-spacing:-.025em;font-weight:800}
+.lead{color:var(--muted);margin:0 0 26px;max-width:580px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.ch{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--soft);color:var(--tx);flex:none}
+.tile.yt{background:rgba(240,73,76,.15);color:var(--red)}
+.tile.fb{background:rgba(91,140,255,.16);color:var(--blue)}
+.tile.wn{background:rgba(224,160,40,.16);color:var(--warn)}
+.ch h2{font-size:17px;margin:0;flex:1;line-height:1.3;font-weight:700}
+.ch h2 small{display:block;font-size:13px;font-weight:500;color:var(--muted)}
+.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase}
+.pill.yt{background:rgba(240,73,76,.16);color:#ff8f91}
+.pill.fb{background:rgba(91,140,255,.18);color:#9db9ff}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:16px 0 6px}
+input,textarea{width:100%;font:inherit;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--inp);color:var(--tx);-webkit-appearance:none;appearance:none}
+input::placeholder,textarea::placeholder{color:#5f708c}
+input:focus,textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 4px rgba(47,111,237,.12)}
+textarea{min-height:140px;resize:vertical;line-height:1.55}
+.fld{position:relative}
+.fld .ic{position:absolute;left:14px;top:50%;margin-top:-9px;color:var(--muted)}
+.fld input{padding-left:44px}
+details{margin-top:14px}
+summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);padding:6px 0}
+.go{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:20px;height:54px;border:0;border-radius:14px;background:var(--red);color:#fff;font:inherit;font-size:17px;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(229,56,59,.28)}
+.go:active{background:var(--red2)}
+.go[disabled]{opacity:.6}
+.sm{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--soft);color:var(--tx);border-radius:10px;padding:8px 13px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.sm:active{background:#22355a}
+.note{font-size:13px;color:var(--muted);margin-top:10px}
+#st{margin-top:12px;min-height:20px}
+#out{display:none}
+.chip{display:inline-block;background:var(--soft);border-radius:20px;padding:6px 13px;margin:0 6px 8px 0;font-size:14px;font-weight:500}
+.t{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.t:last-child{border-bottom:0;padding-bottom:0}
+.t .x{flex:1;font-weight:500;line-height:1.4}
+.badge{width:44px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;flex:none}
+.hi{background:var(--ok)}.mid{background:var(--warn)}.lo{background:var(--red)}
+.row{display:flex;gap:10px;align-items:center}
+.row input{flex:1}
+.sub3{font-size:14px;font-weight:700;margin:18px 0 8px;display:flex;align-items:center;justify-content:space-between}
+ul.pts{list-style:none;padding:0;margin:0}
+ul.pts li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #3a3220;font-size:15px}
+ul.pts li:last-child{border-bottom:0}
+ul.pts .ic{margin-top:3px;color:var(--warn)}
+.card.warn{background:#1b1912;border-color:#3a3220}
+.ck{padding:7px 0 7px 28px;position:relative;font-size:15px}
+.ck:before{position:absolute;left:0;top:7px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff}
+.ck.ok{color:var(--tx)}.ck.ok:before{content:"\2713";background:var(--ok)}
+.ck.bad{color:#ff8f91}.ck.bad:before{content:"!";background:var(--red)}
+@media(max-width:900px){
+.app{flex-direction:column}
+.side{position:sticky;top:0;width:100%;height:auto;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;z-index:20;overflow-x:auto;overflow-y:hidden;align-self:stretch}
+.brand{padding:0 8px 0 0}.brand small,.foot,.nav .lb{display:none!important}
+.nav{flex-direction:row;gap:4px}
+.nav button{width:auto;white-space:nowrap;padding:9px 13px;font-size:14px}
+.main{padding:22px 14px 80px}
+[id^=sec-]{scroll-margin-top:76px}
+h1{font-size:26px}
+.card{padding:18px;border-radius:16px}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+<symbol id="i-text" viewBox="0 0 24 24"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".6"/></symbol>
+<symbol id="i-fb" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></symbol>
+<symbol id="i-yt" viewBox="0 0 24 24"><path d="M2.5 17a24.1 24.1 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.6 49.6 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.1 24.1 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.6 49.6 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4M12 16h.01"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+<symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol>
+</defs></svg>
+
+<div class="app">
+<aside class="side">
+<div class="brand"><div class="logo"><svg class="ic"><use href="#i-yt"/></svg></div><div><b>SEO Studio</b><small>YouTube dan Facebook</small></div></div>
+<nav class="nav">
+<button class="on" data-t="sec-input"><svg class="ic"><use href="#i-file"/></svg>Naskah</button>
+<div class="lb">Hasil</div>
+<button class="res" data-t="sec-kw"><svg class="ic"><use href="#i-search"/></svg>Kata kunci</button>
+<button class="res" data-t="sec-title"><svg class="ic"><use href="#i-type"/></svg>Judul</button>
+<button class="res" data-t="sec-desc"><svg class="ic"><use href="#i-text"/></svg>Deskripsi</button>
+<button class="res" data-t="sec-tags"><svg class="ic"><use href="#i-tag"/></svg>Tag dan hashtag</button>
+<button class="res" data-t="sec-fb"><svg class="ic"><use href="#i-fb"/></svg>Facebook</button>
+<button class="res" data-t="sec-warn"><svg class="ic"><use href="#i-shield"/></svg>Sebelum publish</button>
+<button class="res" data-t="sec-check"><svg class="ic"><use href="#i-check"/></svg>Cek SEO</button>
+</nav>
+<div class="foot">Pengaturan tersimpan di perangkat ini.</div>
+</aside>
+
+<main class="main"><div class="col">
+<h1>Buat SEO untuk videomu</h1>
+<p class="lead">Tempel naskah, tekan satu tombol. Judul, deskripsi, tag, dan caption dibuat dari isi naskahmu untuk penonton seluruh dunia.</p>
+
+<section class="card" id="sec-input">
+<div class="ch"><div class="tile"><svg class="ic"><use href="#i-file"/></svg></div><h2>Naskah video<small>Bahasa Inggris. Tag seperti [excited] boleh ikut.</small></h2></div>
+<textarea id="sc" placeholder="Tempel naskah narasi di sini..."></textarea>
+<label for="kw">Kata kunci utama (terisi otomatis, boleh diganti)</label>
+<div class="fld"><svg class="ic"><use href="#i-search"/></svg><input id="kw" type="text" autocapitalize="off" autocorrect="off"></div>
+<details>
+<summary>Nama seri dan kredit musik</summary>
+<label for="se">Nama seri</label>
+<input id="se" type="text">
+<label for="mu">Kredit musik (masuk ke deskripsi; kosongkan kalau tidak perlu)</label>
+<textarea id="mu" style="min-height:90px"></textarea>
+</details>
+<button class="go" id="go"><svg class="ic"><use href="#i-spark"/></svg>Buat SEO</button>
+<div class="note" id="st"></div>
+</section>
+
+<div id="out">
+<section class="card" id="sec-kw">
+<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-search"/></svg></div><h2>Kata kunci yang diketik orang<small>Saran pencarian YouTube, bahasa Inggris (AS)</small></h2><span class="pill yt">YouTube</span></div>
+<div id="sg"></div>
+<div class="note">Ini menunjukkan apa yang diketik orang, bukan jumlah pencarian.</div>
+</section>
+
+<section class="card" id="sec-title">
+<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-type"/></svg></div><h2>Pilihan judul<small>Hijau 75 ke atas bagus</small></h2><span class="pill yt">YouTube</span></div>
+<div id="ti"></div>
+<div class="note">Skor adalah penilaian sederhana: panjang, posisi kata kunci, dan kata pemancing rasa penasaran.</div>
+</section>
+
+<section class="card" id="sec-desc">
+<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-text"/></svg></div><h2>Deskripsi</h2><button class="sm" id="cd"><svg class="ic"><use href="#i-copy"/></svg><span>Salin</span></button></div>
+<textarea id="de" style="min-height:240px"></textarea>
+<div class="note" id="dc"></div>
+</section>
+
+<section class="card" id="sec-tags">
+<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-tag"/></svg></div><h2>Tag dan hashtag</h2><button class="sm" id="ct"><svg class="ic"><use href="#i-copy"/></svg><span>Salin tag</span></button></div>
+<textarea id="tg" style="min-height:90px"></textarea>
+<div class="note" id="tc"></div>
+<div class="sub3">Hashtag<button class="sm" id="ch"><svg class="ic"><use href="#i-copy"/></svg><span>Salin</span></button></div>
+<input id="ht" type="text">
+<div class="note">Tiga hashtag pertama tampil di atas judul. Sudah diletakkan di akhir deskripsi.</div>
+</section>
+
+<section class="card" id="sec-fb">
+<div class="ch"><div class="tile fb"><svg class="ic"><use href="#i-fb"/></svg></div><h2>Caption Facebook Reels<small>Professional mode</small></h2><button class="sm" id="cf"><svg class="ic"><use href="#i-copy"/></svg><span>Salin</span></button></div>
+<textarea id="fc" style="min-height:220px"></textarea>
+<div class="note" id="fn"></div>
+<div class="sub3">Hashtag Facebook<button class="sm" id="cfh"><svg class="ic"><use href="#i-copy"/></svg><span>Salin</span></button></div>
+<input id="fh" type="text">
+<div class="note">Facebook tidak punya kolom judul atau tag; yang dibaca adalah caption. Panduan Meta: tanpa link, huruf kapital seperlunya, hashtag paling banyak 5.</div>
+</section>
+
+<section class="card warn" id="sec-warn">
+<div class="ch"><div class="tile wn"><svg class="ic"><use href="#i-shield"/></svg></div><h2>Sebelum menekan Publish<small>Empat hal yang sering terlewat</small></h2></div>
+<ul class="pts">
+<li><svg class="ic"><use href="#i-dot"/></svg><span><b>Label AI.</b> YouTube: pilih <b>Yes</b> di bagian konten buatan AI bila ada gambar atau suara realistis buatan AI. Facebook: nyalakan label "AI info" saat publish; Meta menyebut narasi suara AI termasuk yang bisa diwajibkan.</span></li>
+<li><svg class="ic"><use href="#i-dot"/></svg><span><b>Kredit musik.</b> Lisensi CC BY wajib mencantumkan atribusi. Pastikan barisnya ikut tersalin.</span></li>
+<li><svg class="ic"><use href="#i-dot"/></svg><span><b>Bahasa video.</b> Pilih English di detail video. Tambahkan subtitle English dan terjemahan judul dan deskripsi untuk jangkauan global.</span></li>
+<li><svg class="ic"><use href="#i-dot"/></svg><span><b>Made for kids.</b> Jawab sesuai target penontonmu. Series sejarah untuk umum biasanya "No".</span></li>
+</ul>
+</section>
+
+<section class="card" id="sec-check">
+<div class="ch"><div class="tile yt"><svg class="ic"><use href="#i-check"/></svg></div><h2>Cek SEO YouTube<small>Boleh diedit, lalu cek ulang</small></h2></div>
+<label for="ct1">Judul</label><input id="ct1" type="text">
+<label for="cd1">Deskripsi</label><textarea id="cd1"></textarea>
+<button class="sm" id="cek" style="margin-top:14px"><svg class="ic"><use href="#i-check"/></svg><span>Cek sekarang</span></button>
+<div id="cr" style="margin-top:12px"></div>
+</section>
+</div>
+</div></main>
+</div>
+
+<script>
+var $=function(i){return document.getElementById(i)};
+var DEF_SERIES="Forgotten History in Under a Minute";
+var DEF_MUSIC='Music: "Sneaky Adventure" by Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/';
+var K="",sugg=[],lastAuto="",ents=[];
+
+var STOP={};
+("the a an in on at by for and but or of to is are was were be been it its this that these those there here around even now over under after before when while what why how who which with without from into as if then than so not no yes all one two three four five six seven eight nine ten i we you he she they his her their our your my me him them us whole each every some many most more also still just only very can could will would should may might do does did has have had new old first last during since until about against between through january february march april may june july august september october november december").split(" ").forEach(function(w){STOP[w]=1});
+
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function copyText(t,btn){
+  var old=btn.innerHTML;
+  function done(){btn.textContent="Tersalin";setTimeout(function(){btn.innerHTML=old},1500)}
+  function fb(){
+    var a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.top="0";a.style.opacity="0";
+    document.body.appendChild(a);a.focus();a.select();try{a.setSelectionRange(0,99999)}catch(e){}
+    try{document.execCommand("copy");done()}catch(e){btn.textContent="Gagal"}
+    document.body.removeChild(a);
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fb)}else{fb()}
+}
+
+var NW={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+var NWRE=new RegExp("\\b((?:"+Object.keys(NW).join("|")+"|hundred|thousand|million)(?:[\\s-]+(?:"+Object.keys(NW).join("|")+"|hundred|thousand|million))*)\\b","gi");
+function parseNum(tk){
+  var total=0,cur=0;
+  for(var i=0;i<tk.length;i++){
+    var w=tk[i];
+    if(NW[w]!==undefined)cur+=NW[w];
+    else if(w==="hundred")cur=(cur||1)*100;
+    else if(w==="thousand"){total+=(cur||1)*1000;cur=0}
+    else if(w==="million"){total+=(cur||1)*1000000;cur=0}
+  }
+  return total+cur;
+}
+function numToDigits(t){
+  return t.replace(NWRE,function(m){
+    var tk=m.toLowerCase().split(/[\s-]+/);
+    var big=/hundred|thousand|million/.test(m.toLowerCase());
+    var tens=false;for(var i=0;i<tk.length;i++){if(NW[tk[i]]>=20)tens=true}
+    if(!big&&tk.length>=2&&(tk[0]==="nineteen"||tk[0]==="twenty")){
+      var rest=parseNum(tk.slice(1));
+      if(rest>=10&&rest<100)return String((tk[0]==="nineteen"?19:20)*100+rest);
+    }
+    if(!big&&!tens)return m;
+    var v=parseNum(tk);
+    if(v>=10000)return String(v).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+    if(v>=1000&&!(v>=1900&&v<=2099))return String(v).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+    return String(v);
+  });
+}
+function cleanScript(t){
+  t=t.replace(/\[[^\]]*\]/g," ").replace(/\.{3}/g,"\u2026").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
+  return numToDigits(t);
+}
+function sentences(t){
+  var m=t.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)||[],o=[];
+  for(var i=0;i<m.length;i++){var s=m[i].replace(/^\s+|\s+$/g,"");if(s)o.push(s)}
+  return o;
+}
+function stripEnd(s){return s.replace(/[.!?\u2026\s]+$/,"")}
+function shorten(s,max){
+  s=stripEnd(s);
+  if(s.length<=max)return s;
+  var cut=s.substring(0,max),best=-1,seps=[" \u2014",",",":"," -"];
+  for(var i=0;i<seps.length;i++){var p=cut.lastIndexOf(seps[i]);if(p>best)best=p}
+  if(best>=25)return cut.substring(0,best);
+  var sp=cut.lastIndexOf(" ");
+  return sp>20?cut.substring(0,sp):cut;
+}
+
+function detect(text,sents){
+  var count={},first={},order=0;
+  for(var i=0;i<sents.length;i++){
+    var runs=sents[i].match(/[A-Z][a-z]+(?:\s[A-Z][a-z]+)*/g)||[];
+    for(var j=0;j<runs.length;j++){
+      var w=runs[j].split(" ");
+      while(w.length&&STOP[w[0].toLowerCase()])w.shift();
+      if(!w.length)continue;
+      var key=w.join(" ");
+      if(w.length===1&&text.indexOf(" "+key.toLowerCase()+" ")>-1)continue;
+      if(!count[key]){count[key]=0;first[key]=order++}
+      count[key]++;
+    }
+  }
+  var arr=[];for(var k in count){arr.push(k)}
+  arr.sort(function(a,b){return count[b]-count[a]||first[a]-first[b]});
+  return arr;
+}
+
+function fetchSugg(q,cb){
+  var name="ytcb"+(new Date().getTime())+Math.floor(Math.random()*100000);
+  var s=document.createElement("script"),fin=false;
+  function end(r){
+    if(fin)return;fin=true;
+    try{delete window[name]}catch(e){window[name]=null}
+    if(s.parentNode)s.parentNode.removeChild(s);
+    cb(r||[]);
+  }
+  window[name]=function(d){
+    var o=[];
+    try{for(var i=0;i<d[1].length;i++){o.push(d[1][i][0])}}catch(e){}
+    end(o);
+  };
+  s.onerror=function(){end([])};
+  setTimeout(function(){end([])},7000);
+  s.src="https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&hl=en&gl=us&q="+encodeURIComponent(q)+"&jsonp="+name;
+  document.body.appendChild(s);
+}
+
+function score(t,k){
+  var s=0,l=t.length,p=t.toLowerCase().indexOf(k.toLowerCase());
+  if(l>=40&&l<=70)s+=35;else if(l>=30&&l<=80)s+=20;else s+=8;
+  if(p===0)s+=30;else if(p>0&&p<=40)s+=22;else if(p>0)s+=10;
+  if(/(forgotten|untold|secret|why|how|mystery|hidden|whole|entire|never|history|story|explained)/i.test(t))s+=15;
+  if(/\d/.test(t))s+=10;
+  if(/[?:]/.test(t))s+=5;
+  return Math.min(100,s);
+}
+
+function build(text,sents){
+  var E=K,E2=null,series=$("se").value.replace(/^\s+|\s+$/g,"")||DEF_SERIES,music=$("mu").value.replace(/^\s+|\s+$/g,"");
+  var sec=[];
+  for(var i=0;i<ents.length&&sec.length<2;i++){
+    var a1=ents[i].toLowerCase(),b1=E.toLowerCase();
+    if(a1!==b1&&b1.indexOf(a1)===-1&&a1.indexOf(b1)===-1)sec.push(ents[i]);
+  }
+  E2=sec[0]||null;
+  var hook=sents[0]||E,last=sents[sents.length-1]||E;
+
+  var c=[];
+  c.push(E+": "+shorten(hook,70-E.length-2));
+  c.push(shorten(hook,70));
+  c.push(shorten(last,70));
+  c.push("The Forgotten History of "+E);
+  c.push("The Untold Story of "+E+(E2?", "+E2:""));
+  c.push(E+" Explained in Under a Minute");
+  c.push("What Happened to "+E+"?");
+  c.push(E+": "+series);
+  var seen={},titles=[];
+  for(var a=0;a<c.length;a++){
+    var tt=c[a];if(!tt||seen[tt.toLowerCase()]||tt.length>100)continue;
+    seen[tt.toLowerCase()]=1;titles.push({t:tt,s:score(tt,E)});
+  }
+  titles.sort(function(x,y){return y.s-x.s});
+
+  var tags=[],tseen={},len=0,all=[E];
+  if(E2)all.push(E+" "+E2);
+  all=all.concat(sugg.slice(0,12));
+  for(var s2=0;s2<sec.length;s2++)all.push(sec[s2]);
+  var sl=series.toLowerCase().replace(/\s+in\s+under.*$/,"");
+  all=all.concat([sl,"history shorts","history facts","untold history","forgotten history"]);
+  for(var m=0;m<all.length;m++){
+    var tg=all[m].toLowerCase();
+    if(tseen[tg])continue;
+    if(len+tg.length+2>480)break;
+    tseen[tg]=1;tags.push(tg);len+=tg.length+2;
+  }
+
+  var hs=[],hseen={};
+  function addH(h){var k2=h.toLowerCase();if(!hseen[k2]&&hs.length<5){hseen[k2]=1;hs.push(h)}}
+  addH("#"+E.replace(/\s+/g,""));
+  addH("#History");
+  addH("#Shorts");
+  var sw=series.split(/\s+/);if(sw.length>1)addH("#"+sw[0]+sw[1]);
+  if(E2)addH("#"+E2.replace(/\s+/g,""));
+
+  var open=(hook.toLowerCase().indexOf(E.toLowerCase())>-1)?hook:(E+": "+hook);
+  if(open.length>150)open=shorten(open,148)+".";
+  var d=open+"\n\n";
+  var body="",rest=sents.slice(1);
+  for(var r=0;r<rest.length;r++){if((body+" "+rest[r]).length>1400)break;body+=(body?" ":"")+rest[r]}
+  if(body)d+=body+"\n\n";
+  d+=series+" - short true stories from history, told fast.\nSubscribe for the next episode.\n\n";
+  if(music)d+=music+"\n\n";
+  d+=hs.join(" ");
+
+  var fo=stripEnd(shorten(open,123))+".";
+  var fb2="",fr=sents.slice(1);
+  for(var f=0;f<fr.length;f++){if((fb2+" "+fr[f]).length>330)break;fb2+=(fb2?" ":"")+fr[f]}
+  var fcap=fo+"\n\n";
+  if(fb2)fcap+=fb2+"\n\n";
+  fcap+="Did you know this story? Tell us in the comments.\nFollow for the next episode of "+series+".\n\n";
+  if(music){
+    var ml=music.split("\n"),mk=[];
+    for(var u=0;u<ml.length;u++){if(ml[u].indexOf("http")===-1)mk.push(ml[u])}
+    if(mk.length)fcap+=mk.join("\n")+"\n\n";
+  }
+  var fh=[],fseen={};
+  function addF(h){var k3=h.toLowerCase();if(!fseen[k3]&&fh.length<5){fseen[k3]=1;fh.push(h)}}
+  addF("#"+E.replace(/\s+/g,""));
+  addF("#History");
+  if(sw.length>1)addF("#"+sw[0]+sw[1]);
+  if(E2)addF("#"+E2.replace(/\s+/g,""));
+  fcap+=fh.join(" ");
+  $("fc").value=fcap;
+  $("fh").value=fh.join(" ");
+  $("fn").textContent=fcap.length+" karakter. Kira-kira 125 huruf pertama (baris pembuka, "+fo.length+" huruf) yang tampil sebelum tombol selengkapnya.";
+
+  var sg=$("sg");sg.innerHTML="";
+  if(!sugg.length){sg.innerHTML='<div class="note">Saran kata kunci tidak bisa diambil (internet bermasalah atau halaman dibuka dari preview). Hasil lain tetap dibuat dari naskahmu.</div>'}
+  for(var q=0;q<sugg.length;q++){var sp=document.createElement("span");sp.className="chip";sp.textContent=sugg[q];sg.appendChild(sp)}
+
+  var ti=$("ti");ti.innerHTML="";
+  for(var z=0;z<titles.length;z++){
+    (function(o){
+      var row=document.createElement("div");row.className="t";
+      var cls=o.s>=75?"hi":(o.s>=55?"mid":"lo");
+      row.innerHTML='<span class="badge '+cls+'">'+o.s+'</span><span class="x">'+esc(o.t)+'</span>';
+      var b=document.createElement("button");b.className="sm";b.innerHTML='<svg class="ic"><use href="#i-copy"/></svg><span>Salin</span>';
+      b.onclick=function(){copyText(o.t,b)};
+      row.appendChild(b);ti.appendChild(row);
+    })(titles[z]);
+  }
+
+  $("de").value=d;
+  $("dc").textContent=d.length+" dari 5000 karakter. Baris pembuka ("+open.length+" huruf) adalah bagian yang tampil di hasil pencarian.";
+  $("tg").value=tags.join(", ");
+  $("tc").textContent=tags.length+" tag, "+tags.join(", ").length+" dari 500 karakter. Tag hanya berpengaruh kecil; judul dan deskripsi jauh lebih penting.";
+  $("ht").value=hs.join(" ");
+  $("ct1").value=titles[0].t;
+  $("cd1").value=d;
+  $("out").style.display="block";document.body.className="has-out";setTimeout(function(){goTo("sec-title")},80);
+  runCheck();
+}
+
+function runCheck(){
+  var t=$("ct1").value,d=$("cd1").value,k=K.toLowerCase(),res=[];
+  function add(ok,txt){res.push('<div class="ck '+(ok?"ok":"bad")+'">'+(ok?"Sudah: ":"Perbaiki: ")+esc(txt)+'</div>')}
+  var tl=t.toLowerCase(),dl=d.toLowerCase(),p=tl.indexOf(k);
+  add(t.length>=40&&t.length<=70,"Panjang judul "+t.length+" huruf (ideal 40 sampai 70)");
+  add(p>-1,"Kata kunci ada di judul");
+  add(p>-1&&p<=40,"Kata kunci ada di 40 huruf pertama judul");
+  add(dl.substring(0,150).indexOf(k)>-1,"Kata kunci ada di 150 huruf pertama deskripsi");
+  add(d.length>=300,"Deskripsi "+d.length+" huruf (disarankan 300 atau lebih)");
+  var h=d.match(/#[^\s#]+/g)||[];
+  add(h.length>=3&&h.length<=5,"Jumlah hashtag "+h.length+" (ideal 3 sampai 5, jangan lebih dari 15)");
+  add(/subscribe/i.test(d),"Ada ajakan Subscribe");
+  var mu=$("mu").value.replace(/^\s+|\s+$/g,"");
+  if(mu){add(d.indexOf(mu.split("\n")[0])>-1,"Kredit musik ada di deskripsi")}
+  $("cr").innerHTML=res.join("");
+}
+
+$("se").value=load("yss_series",DEF_SERIES);
+$("mu").value=load("yss_music",DEF_MUSIC);
+$("se").onchange=function(){store("yss_series",this.value)};
+$("mu").onchange=function(){store("yss_music",this.value)};
+
+$("go").onclick=function(){
+  var text=cleanScript($("sc").value);
+  if(text.length<30){$("st").textContent="Tempel naskah videonya dulu ya.";return}
+  var sents=sentences(text);
+  ents=detect(text,sents);
+  var auto=ents[0]||"";
+  var cur=$("kw").value.replace(/^\s+|\s+$/g,"");
+  if(!cur||cur===lastAuto){cur=auto;$("kw").value=auto}
+  lastAuto=auto;
+  if(!cur){$("st").textContent="Kata kunci utama belum terdeteksi. Ketik manual di kolom kata kunci.";return}
+  K=cur;
+  store("yss_series",$("se").value);store("yss_music",$("mu").value);
+  $("st").textContent="Mengambil saran kata kunci dari YouTube...";
+  $("go").disabled=true;
+  var suf=[""," history"," facts"," why"," how"," explained"," story"," what happened"],left=suf.length,got=[];
+  for(var i=0;i<suf.length;i++){
+    (function(sx){
+      fetchSugg(K+sx,function(r){
+        got=got.concat(r);left--;
+        if(left===0){
+          var seen={},o=[],kl=K.toLowerCase();
+          for(var j=0;j<got.length;j++){
+            var g=got[j].toLowerCase();
+            if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
+          }
+          sugg=o.slice(0,20);
+          $("st").textContent="Terdeteksi dari naskah: "+ents.slice(0,4).join(", ")+(sugg.length?". Selesai.":". Selesai (tanpa saran kata kunci).");
+          $("go").disabled=false;
+          build(text,sents);
+        }
+      });
+    })(suf[i]);
+  }
+};
+$("cd").onclick=function(){copyText($("de").value,this)};
+$("ct").onclick=function(){copyText($("tg").value,this)};
+$("ch").onclick=function(){copyText($("ht").value,this)};
+$("cf").onclick=function(){copyText($("fc").value,this)};
+$("cfh").onclick=function(){copyText($("fh").value,this)};
+$("cek").onclick=runCheck;
+function goTo(id){
+  var el=document.getElementById(id);if(!el)return;
+  try{el.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){el.scrollIntoView(true)}
+  var n=document.querySelectorAll(".nav button");
+  for(var i=0;i<n.length;i++){n[i].className=(n[i].getAttribute("data-t")===id)?"on":""}
+}
+(function(){
+  var n=document.querySelectorAll(".nav button");
+  for(var i=0;i<n.length;i++){n[i].onclick=function(){goTo(this.getAttribute("data-t"))}}
+})();
+</script>
+</body>
+</html>
