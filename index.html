@@ -62,6 +62,10 @@ summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);padding
 .note{font-size:13px;color:var(--muted);margin-top:10px}
 #st{margin-top:12px;min-height:20px}
 #out{display:none}
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:13px 16px;border-radius:14px;margin-bottom:18px;font-size:14px;font-weight:600}
+.banner.ai{background:rgba(43,182,122,.12);color:#6fe0ae;border:1px solid rgba(43,182,122,.3)}
+.banner.tpl{background:rgba(224,160,40,.12);color:#f0c36a;border:1px solid rgba(224,160,40,.32)}
+.banner .lnk{color:inherit}
 .lnk{background:none;border:0;color:var(--blue);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline}
 .tok{color:var(--ok)}.tbad{color:#ff8f91}
 .nav .setb{margin-top:14px;border-top:1px solid #16233b;border-radius:0 0 10px 10px;padding-top:14px}
@@ -164,6 +168,7 @@ h1{font-size:26px}
 </section>
 
 <div id="out">
+<div class="banner" id="mb"><span id="mbt"></span><button class="lnk" id="mbl">Buka Pengaturan</button></div>
 <div class="seg" id="seg"><button id="lt0" class="on">English</button><button id="lt1">Indonesia</button></div>
 <div class="note" id="segn" style="display:none;margin:-8px 0 18px">Tag hanya untuk bahasa utama. Versi bahasa kedua: tempel judul dan deskripsi di menu terjemahan YouTube Studio (Subtitles, Add language), atau posting terpisah di Facebook.</div>
 <section class="card warn" id="aic" style="display:none">
@@ -372,11 +377,11 @@ function detectLang(t){
 var LG={
 en:{hl:"en",gl:"us",sub:"Subscribe for the next episode.",ser:"Series: ",cta:"Did you know this? Tell us in the comments.",
  fol:function(s){return "Follow for the next episode"+(s?" of "+s:"")+"."},
- tp:function(E){return [E+" Explained Simply","Everything You Need to Know About "+E,E+": The Story in Short"]},
+ tp:function(E){return []},
  q:function(K){var s=[""," history"," facts"," why"," how"," explained"," story"," what happened"],o=[];for(var i=0;i<s.length;i++)o.push(K+s[i]);return o}},
 id:{hl:"id",gl:"id",sub:"Subscribe supaya tidak ketinggalan episode berikutnya.",ser:"Seri: ",cta:"Kamu sudah tahu ini? Tulis di komentar.",
  fol:function(s){return "Ikuti untuk episode berikutnya"+(s?" dari "+s:"")+"."},
- tp:function(E){return ["Fakta Menarik tentang "+E,E+" Dijelaskan dengan Sederhana","Yang Perlu Kamu Tahu tentang "+E]},
+ tp:function(E){return []},
  q:function(K){return [K,K+" adalah","apa itu "+K,K+" untuk pemula","cara kerja "+K,K+" terbaru",K+" contoh",K+" manfaat"]}}};
 var LANG="en",LGX=LG.en;
 function score(t,k){
@@ -425,9 +430,9 @@ function build(text,sents){
   var full=hasE?hl:E+": "+hl;
   if(full.length<=100){c.push(full);if(!hasE&&hl.length<=100)c.push(hl)}
   else c.push(hasE?shorten(hook,70):E+": "+shorten(hook,70-E.length-2));
-  for(var q0=0,qn=0;q0<sents.length&&qn<2;q0++){
+  for(var q0=0,qn=0;q0<sents.length&&qn<3;q0++){
     var sq=sents[q0].replace(/[.\u2026\s]+$/,"");
-    if(sq.indexOf("?")>-1&&sq.toLowerCase().indexOf(E.toLowerCase())>-1&&sq.length>=20&&sq.length<=100){c.push(up(sq.replace(/^(Tapi|But|And|Dan)\s+/i,"")));qn++}
+    if(sq.indexOf("?")>-1&&sq.length>=20&&sq.length<=100){c.push(up(sq.replace(/^(Tapi|But|And|Dan|Lalu|Jadi|Then|So),?\s+/i,"")));qn++}
   }
   if(sents.length>1){var last=sents[sents.length-1];if(last.length>=30&&last.toLowerCase().indexOf(E.toLowerCase())>-1)c.push(shorten(last,70))}
   var tp=L.tp(E);for(var t0=0;t0<tp.length;t0++)c.push(tp[t0]);
@@ -544,7 +549,7 @@ function show(i){
   $("de").value=s.de;$("dc").textContent=s.dc;$("tg").value=s.tg;$("tc").textContent=s.tc;$("ht").value=s.ht;
   $("fc").value=s.fc;$("fn").textContent=s.fn;$("fh").value=s.fh;$("ct1").value=s.ct1;$("cd1").value=s.cd1;
   $("lt0").className=i===0?"on":"";$("lt1").className=i===1?"on":"";
-  renderAI(s);
+  renderAI(s);renderBanner(s);
   runCheck();
 }
 $("lt0").onclick=function(){saveCur();show(0)};
@@ -667,6 +672,12 @@ function applyAI(r,L){
   $("out").style.display="block";
   runCheck();
 }
+function renderBanner(s){
+  var b=$("mb"),t=$("mbt"),l=$("mbl");
+  if(s.mode==="ai"){b.className="banner ai";t.textContent="Dibuat AI: "+s.model+(s.nosearch?" (tanpa pencarian Google, model ini tidak mendukungnya)":" + riset Google");l.style.display="none"}
+  else if(s.mode==="fail"){b.className="banner tpl";t.textContent="AI gagal ("+(s.err||"tidak diketahui")+"). Memakai versi template, judulnya diambil dari kalimat naskah.";l.style.display="inline";l.textContent="Buka Pengaturan"}
+  else{b.className="banner tpl";t.textContent="Mode template: belum memakai AI, judul diambil dari kalimat naskah. Hasil AI jauh lebih baik.";l.style.display="inline";l.textContent="Isi API key"}
+}
 function renderAI(s){
   var c=$("aic");
   if(!s.ai){c.style.display="none";return}
@@ -684,7 +695,7 @@ function runOne(text,hint,force,cb){
   if(!k){cb(null);return}
   K=k;
   var qs=LGX.q(K),left=qs.length,got=[],lang=LANG,L=LGX,myEnts=ents.slice();
-  function done(){var s=snapNow();s.lang=lang;s.ents=myEnts;cb(s)}
+  function done(m){var s=snapNow();s.lang=lang;s.ents=myEnts;s.mode=m;s.err=AIERR;s.model=$("gm").options[$("gm").selectedIndex].text;s.nosearch=NOSEARCH;cb(s)}
   for(var i=0;i<qs.length;i++){
     fetchSugg(qs[i],function(r){
       got=got.concat(r);left--;
@@ -695,7 +706,7 @@ function runOne(text,hint,force,cb){
         if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
       }
       sugg=o.slice(0,20);
-      if(!gKey()||AIDEAD){build(text,sents);done();return}
+      if(!gKey()||AIDEAD){build(text,sents);done(gKey()?"fail":"nokey");return}
       $("st").textContent="Riset topik di Google ("+langName(lang)+")...";
       var brief="";
       gem(prompt1(text,lang,sugg),{search:true,temp:0.3}).then(function(b){
@@ -708,11 +719,11 @@ function runOne(text,hint,force,cb){
         build(text,sents);
         applyAI(r2,L);
         LASTB=brief||"(ringkasan kosong)";
-        done();
+        done("ai");
       }).catch(function(e){
         AIDEAD=true;AIERR=errMsg(e);
         LGX=L;K=k;
-        build(text,sents);done();
+        build(text,sents);done("fail");
       });
     });
   }
@@ -761,6 +772,7 @@ $("cek").onclick=runCheck;
 $("gk").oninput=function(){store("yss2_gkey",this.value);updAM()};
 $("gm").onchange=function(){store("yss2_model",this.value);updAM()};
 $("goset").onclick=function(){goTo("view-set")};
+$("mbl").onclick=function(){goTo("view-set")};
 $("gv").onclick=function(){var k=$("gk");k.type=(k.type==="password")?"text":"password";this.textContent=(k.type==="password")?"Tampilkan":"Sembunyikan"};
 $("gt").onclick=function(){
   var b=this,o=$("gtr");
