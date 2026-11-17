@@ -62,6 +62,9 @@ summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);padding
 .note{font-size:13px;color:var(--muted);margin-top:10px}
 #st{margin-top:12px;min-height:20px}
 #out{display:none}
+.lnk{background:none;border:0;color:var(--blue);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline}
+.tok{color:var(--ok)}.tbad{color:#ff8f91}
+.nav .setb{margin-top:14px;border-top:1px solid #16233b;border-radius:0 0 10px 10px;padding-top:14px}
 .why{display:block;color:var(--muted);font-size:13px;font-weight:500;margin-top:2px}
 .seg{display:none;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;margin-bottom:18px;width:max-content;position:sticky;top:12px;z-index:5}
 .seg button{border:0;background:none;color:var(--muted);font:inherit;font-weight:700;padding:9px 20px;border-radius:10px;cursor:pointer}
@@ -89,6 +92,7 @@ ul.pts .ic{margin-top:3px;color:var(--warn)}
 .side{position:sticky;top:0;width:100%;height:auto;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;z-index:20;overflow-x:auto;overflow-y:hidden;align-self:stretch}
 .brand{padding:0 8px 0 0}.brand small,.foot,.nav .lb{display:none!important}
 .nav{flex-direction:row;gap:4px}
+.nav .setb{margin-top:0;border-top:0;border-radius:10px;padding-top:9px}
 .nav button{width:auto;white-space:nowrap;padding:9px 13px;font-size:14px}
 .main{padding:22px 14px 80px}
 [id^=sec-]{scroll-margin-top:76px}
@@ -111,6 +115,8 @@ h1{font-size:26px}
 <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4M12 16h.01"/></symbol>
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
 <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol>
 </defs></svg>
 
@@ -127,11 +133,13 @@ h1{font-size:26px}
 <button class="res" data-t="sec-fb"><svg class="ic"><use href="#i-fb"/></svg>Facebook</button>
 <button class="res" data-t="sec-warn"><svg class="ic"><use href="#i-shield"/></svg>Sebelum publish</button>
 <button class="res" data-t="sec-check"><svg class="ic"><use href="#i-check"/></svg>Cek SEO</button>
+<button class="setb" data-t="view-set"><svg class="ic"><use href="#i-sliders"/></svg>Pengaturan</button>
 </nav>
 <div class="foot">Pengaturan tersimpan di perangkat ini.</div>
 </aside>
 
 <main class="main"><div class="col">
+<div id="view-main">
 <h1>Buat SEO untuk videomu</h1>
 <p class="lead">Tempel naskah, tekan satu tombol. Judul, deskripsi, tag, dan caption dibuat dari isi naskahmu untuk penonton seluruh dunia.</p>
 
@@ -143,11 +151,7 @@ h1{font-size:26px}
 <div class="note">Tool tidak menerjemahkan. Ia membuat satu paket SEO untuk tiap naskah yang kamu isi.</div>
 <label for="kw">Kata kunci utama (terisi otomatis, boleh diganti)</label>
 <div class="fld"><svg class="ic"><use href="#i-search"/></svg><input id="kw" type="text" autocapitalize="off" autocorrect="off"></div>
-<label for="gk">Gemini API key (opsional, untuk hasil lebih akurat)</label>
-<div class="fld"><svg class="ic"><use href="#i-spark"/></svg><input id="gk" type="password" placeholder="AIza..." autocapitalize="off" autocorrect="off"></div>
-<label for="gm">Model AI</label>
-<select id="gm"><option value="gemini-3.5-flash">Gemini 3.5 Flash</option><option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option></select>
-<div class="note" id="am"></div>
+<div class="note" id="amw"><span id="am"></span> <button class="lnk" id="goset">Buka Pengaturan</button></div>
 <details>
 <summary>Nama seri dan kredit musik</summary>
 <label for="se">Nama seri</label>
@@ -219,6 +223,28 @@ h1{font-size:26px}
 <label for="cd1">Deskripsi</label><textarea id="cd1"></textarea>
 <button class="sm" id="cek" style="margin-top:14px"><svg class="ic"><use href="#i-check"/></svg><span>Cek sekarang</span></button>
 <div id="cr" style="margin-top:12px"></div>
+</section>
+</div>
+</div>
+<div id="view-set" style="display:none">
+<h1>Pengaturan</h1>
+<p class="lead">Atur Gemini sekali saja. Semuanya tersimpan di perangkat ini dan tidak ikut ke GitHub.</p>
+<section class="card" id="sec-ai">
+<div class="ch"><div class="tile wn"><svg class="ic"><use href="#i-spark"/></svg></div><h2>Gemini AI<small>Riset Google, lalu AI menulis SEO dari naskahmu</small></h2><span class="pill" id="sp"></span></div>
+<label for="gk">Gemini API key</label>
+<div class="row"><div class="fld" style="flex:1"><svg class="ic"><use href="#i-key"/></svg><input id="gk" type="password" placeholder="AIza..." autocapitalize="off" autocorrect="off"></div><button class="sm" id="gv">Tampilkan</button><button class="sm" id="gt">Tes</button></div>
+<div class="note" id="gtr"></div>
+<label for="gm">Model AI</label>
+<select id="gm"><option value="gemini-3.5-flash">Gemini 3.5 Flash</option><option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option></select>
+<div class="note" id="gmn"></div>
+</section>
+<section class="card">
+<div class="ch"><div class="tile"><svg class="ic"><use href="#i-shield"/></svg></div><h2>Keamanan key</h2></div>
+<ul class="pts" style="--b:var(--line)">
+<li><svg class="ic"><use href="#i-dot"/></svg><span>Key hanya disimpan di Safari perangkat ini. Jangan menulisnya di dalam file atau repo GitHub.</span></li>
+<li><svg class="ic"><use href="#i-dot"/></svg><span>Di Google AI Studio, batasi key hanya untuk Generative Language API dan pasang pengingat anggaran.</span></li>
+<li><svg class="ic"><use href="#i-dot"/></svg><span>Setiap hasil memakai 2 panggilan Gemini: riset lalu penulisan.</span></li>
+</ul>
 </section>
 </div>
 </div></main>
@@ -498,7 +524,7 @@ function runCheck(){
   $("cr").innerHTML=res.join("");
 }
 
-$("gk").value=load("yss2_gkey","");$("gm").value=load("yss2_model","gemini-3.5-flash");if(!$("gm").value)$("gm").value="gemini-3.5-flash";updAM();$("gk").oninput=updAM;
+$("gk").value=load("yss2_gkey","");$("gm").value=load("yss2_model","gemini-3.5-flash");if(!$("gm").value)$("gm").value="gemini-3.5-flash";updAM();
 $("se").value=load("yss2_series","");
 $("mu").value=load("yss2_music","");
 $("se").onchange=function(){store("yss2_series",this.value)};
@@ -531,7 +557,13 @@ function modelChain(){
   return o;
 }
 function gKey(){return $("gk").value.replace(/\s+/g,"")}
-function updAM(){$("am").textContent=gKey()?"Mode AI aktif: riset Google lalu Gemini menulis SEO dari naskahmu. Key hanya tersimpan di perangkat ini.":"Mode template. Isi Gemini API key supaya hasil dibuat AI dari riset, bukan template."}
+function updAM(){
+  var on=!!gKey(),sel=$("gm"),nm=sel.options[sel.selectedIndex].text;
+  $("am").textContent=on?"Mode AI: "+nm+" + riset Google.":"Mode template. Isi API key di Pengaturan supaya hasil dibuat AI.";
+  $("sp").textContent=on?"AI aktif":"Template";$("sp").className="pill "+(on?"yt":"fb");
+  var N={"gemini-3.5-flash":"Riset paling teliti. Mencari lebih banyak, jadi lebih lambat dan lebih boros kuota.","gemini-3.1-flash-lite":"Cepat dan hemat. Cocok kalau kuota harian cepat habis.","gemini-3.5-flash-lite":"Dukungan riset Google untuk model ini belum terkonfirmasi. Kalau tidak didukung, tool menulis tanpa riset atau pindah ke model lain."};
+  $("gmn").textContent=N[sel.value]||"";
+}
 function gem(prompt,o){
   var idx=0,MODELS=modelChain();
   function go(){
@@ -726,7 +758,23 @@ $("ch").onclick=function(){copyText($("ht").value,this)};
 $("cf").onclick=function(){copyText($("fc").value,this)};
 $("cfh").onclick=function(){copyText($("fh").value,this)};
 $("cek").onclick=runCheck;
+$("gk").oninput=function(){store("yss2_gkey",this.value);updAM()};
+$("gm").onchange=function(){store("yss2_model",this.value);updAM()};
+$("goset").onclick=function(){goTo("view-set")};
+$("gv").onclick=function(){var k=$("gk");k.type=(k.type==="password")?"text":"password";this.textContent=(k.type==="password")?"Tampilkan":"Sembunyikan"};
+$("gt").onclick=function(){
+  var b=this,o=$("gtr");
+  if(!gKey()){o.className="note tbad";o.textContent="Isi API key dulu.";return}
+  b.disabled=true;b.textContent="Menguji...";o.className="note";o.textContent="";
+  gem("Reply with exactly: OK",{temp:0}).then(function(){
+    o.className="note tok";o.textContent="Terhubung. Key valid dan model menjawab."
+  }).catch(function(e){
+    o.className="note tbad";o.textContent="Gagal: "+errMsg(e)
+  }).then(function(){b.disabled=false;b.textContent="Tes"});
+};
+function setView(v){$("view-main").style.display=v==="set"?"none":"block";$("view-set").style.display=v==="set"?"block":"none"}
 function goTo(id){
+  setView(id==="view-set"?"set":"main");
   var el=document.getElementById(id);if(!el)return;
   try{el.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){el.scrollIntoView(true)}
   var n=document.querySelectorAll(".nav button");
