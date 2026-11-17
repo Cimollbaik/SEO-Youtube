@@ -152,10 +152,12 @@ h1{font-size:26px}
 <section class="card" id="sec-input">
 <div class="ch"><div class="tile"><svg class="ic"><use href="#i-file"/></svg></div><h2>Naskah video<small>Inggris atau Indonesia, terdeteksi otomatis. Tag seperti [excited] boleh ikut.</small></h2></div>
 <textarea id="sc" placeholder="Tempel naskah narasi di sini..."></textarea>
-<label for="sc2">Naskah bahasa kedua (opsional)</label>
-<textarea id="sc2" style="min-height:90px" placeholder="Punya versi bahasa lain, misalnya Indonesia atau Inggris? Tempel di sini."></textarea>
-<label class="chk"><input type="checkbox" id="auto2" checked><span>Kalau naskah kedua kosong, buat versi bahasa lain (Inggris atau Indonesia) otomatis dengan AI</span></label>
-<div class="note">Butuh API key di Pengaturan. Tiap versi bahasa memakai 2 panggilan Gemini.</div>
+<label class="chk"><input type="checkbox" id="auto2" checked><span>Hasil dua bahasa dari satu naskah (Indonesia dan English), dibuat otomatis oleh AI</span></label>
+<div class="note">Butuh AI aktif. Tiap bahasa memakai 2 panggilan Gemini.</div>
+<details>
+<summary>Punya naskah bahasa kedua sendiri? (opsional)</summary>
+<textarea id="sc2" style="min-height:90px;margin-top:8px" placeholder="Tempel naskah versi bahasa lain di sini. Kalau diisi, AI tidak perlu membuatnya."></textarea>
+</details>
 <label for="kw">Kata kunci utama (terisi otomatis, boleh diganti)</label>
 <div class="fld"><svg class="ic"><use href="#i-search"/></svg><input id="kw" type="text" autocapitalize="off" autocorrect="off"></div>
 <div class="note" id="amw"><span id="am"></span> <button class="lnk" id="goset">Buka Pengaturan</button></div>
@@ -245,6 +247,7 @@ h1{font-size:26px}
 <label for="gm">Model AI</label>
 <select id="gm"><option value="gemini-3.5-flash">Gemini 3.5 Flash</option><option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option></select>
 <div class="note" id="gmn"></div>
+<div class="note">Daftar model diambil langsung dari akunmu saat key diisi atau tombol Tes ditekan.</div>
 </section>
 <section class="card">
 <div class="ch"><div class="tile"><svg class="ic"><use href="#i-shield"/></svg></div><h2>Keamanan key</h2></div>
@@ -309,6 +312,23 @@ function numToDigits(t){
     if(v>=1000&&!(v>=1900&&v<=2099))return String(v).replace(/\B(?=(\d{3})+(?!\d))/g,",");
     return String(v);
   });
+}
+var CURHEAD="";
+function extractHeading(raw){
+  var lines=String(raw).split(/\r?\n/),head="",body=[],seenText=false;
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i].replace(/\[[^\]]*\]/g," ").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
+    if(!l){body.push(lines[i]);continue}
+    if(!seenText){
+      seenText=true;
+      if(l.length<=120&&!/[.!?\u2026]["')\]]?$/.test(l)&&i<lines.length-1){
+        head=l.replace(/^(episode|eps?)\.?\s*\d+\s*[:\-\u2013\u2014.]?\s*/i,"");
+        continue;
+      }
+    }
+    body.push(lines[i]);
+  }
+  return {head:head,body:body.join("\n")};
 }
 function cleanScript(t){
   t=t.replace(/\[[^\]]*\]/g," ").replace(/\.{3}/g,"\u2026").replace(/\s+/g," ").replace(/^\s+|\s+$/g,"");
@@ -430,6 +450,7 @@ function build(text,sents){
   var hook=sents[0]||E,hl=hook.replace(/[.\u2026\s]+$/,""),hasE=hook.toLowerCase().indexOf(E.toLowerCase())>-1;
   function up(x){return x.charAt(0).toUpperCase()+x.slice(1)}
   var c=[];
+  if(CURHEAD){c.push(CURHEAD);if(CURHEAD.toLowerCase().indexOf(E.toLowerCase())===-1)c.push(E+": "+CURHEAD)}
   var full=hasE?hl:E+": "+hl;
   if(full.length<=100){c.push(full);if(!hasE&&hl.length<=100)c.push(hl)}
   else c.push(hasE?shorten(hook,70):E+": "+shorten(hook,70-E.length-2));
@@ -532,7 +553,7 @@ function runCheck(){
   $("cr").innerHTML=res.join("");
 }
 
-$("auto2").checked=load("yss2_auto2","1")==="1";$("gk").value=load("yss2_gkey","");$("gm").value=load("yss2_model","gemini-3.5-flash");if(!$("gm").value)$("gm").value="gemini-3.5-flash";updAM();
+$("auto2").checked=load("yss2_auto2","1")==="1";$("gk").value=load("yss2_gkey","");$("gm").value=load("yss2_model","gemini-3.5-flash-lite");if(!$("gm").value)$("gm").value="gemini-3.5-flash-lite";updAM();
 $("se").value=load("yss2_series","");
 $("mu").value=load("yss2_music","");
 $("se").onchange=function(){store("yss2_series",this.value)};
@@ -560,11 +581,43 @@ $("lt1").onclick=function(){saveCur();show(1)};
 
 
 function modelChain(){
-  var all=[$("gm").value,"gemini-3.5-flash","gemini-3.1-flash-lite","gemini-3-flash-preview","gemini-2.5-flash"],o=[],s={};
-  for(var i=0;i<all.length;i++){if(all[i]&&!s[all[i]]&&!DEADM[all[i]]){s[all[i]]=1;o.push(all[i])}}
+  var sel=$("gm"),all=[sel.value],o=[],s={},i;
+  for(i=0;i<sel.options.length;i++)all.push(sel.options[i].value);
+  for(i=0;i<all.length&&o.length<4;i++){if(all[i]&&!s[all[i]]&&!DEADM[all[i]]){s[all[i]]=1;o.push(all[i])}}
   return o;
 }
 function gKey(){return $("gk").value.replace(/\s+/g,"")}
+function loadModels(){
+  if(!gKey())return Promise.resolve();
+  var out=[];
+  function page(tok,n){
+    return fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100"+(tok?"&pageToken="+encodeURIComponent(tok):""),{headers:{"x-goog-api-key":gKey()}}).then(function(r){
+      return r.json().then(function(j){
+        if(!r.ok)throw new Error((j&&j.error&&j.error.message)||("HTTP "+r.status));
+        var a=j.models||[];
+        for(var i=0;i<a.length;i++){
+          var m=a[i],id=String(m.name||"").replace(/^models\//,""),gm=m.supportedGenerationMethods||[];
+          if(/^gemini/.test(id)&&!/image|embed|tts|audio|live|robot|computer|imagen|veo|gemma|native/i.test(id)&&gm.indexOf("generateContent")>-1)out.push({id:id,name:m.displayName||id});
+        }
+        if(j.nextPageToken&&n<3)return page(j.nextPageToken,n+1);
+      });
+    });
+  }
+  return page("",0).then(function(){
+    if(!out.length)return;
+    out.sort(function(a,b){return((/flash/.test(b.id)?1:0)-(/flash/.test(a.id)?1:0))||(a.id.length-b.id.length)||(a.id<b.id?-1:1)});
+    var sel=$("gm"),cur=load("yss2_model","gemini-3.5-flash-lite"),h="",seen={},found=false,first="";
+    for(var i=0;i<out.length;i++){
+      var k=out[i].name.toLowerCase();
+      if(seen[k]&&out[i].id!==cur)continue;
+      seen[k]=1;if(!first)first=out[i].id;if(out[i].id===cur)found=true;
+      h+='<option value="'+esc(out[i].id)+'">'+esc(out[i].name)+'</option>';
+    }
+    sel.innerHTML=h;sel.value=found?cur:first;
+    if(!found)store("yss2_model",sel.value);
+    updAM();
+  }).catch(function(){});
+}
 function updAM(){
   var on=!!gKey(),sel=$("gm"),nm=sel.options[sel.selectedIndex].text;
   $("am").textContent=on?"Mode AI: "+nm+" + riset Google.":"Mode template. Isi API key di Pengaturan supaya hasil dibuat AI.";
@@ -573,7 +626,7 @@ function updAM(){
   $("gmn").textContent=N[sel.value]||"";
 }
 function gem(prompt,o){
-  var idx=0,MODELS=modelChain();
+  var idx=0,MODELS=modelChain(),ERRS=[];
   function go(){
     var body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:o.temp}};
     if(o.search)body.tools=[{google_search:{}}];
@@ -582,10 +635,10 @@ function gem(prompt,o){
       return r.json().then(function(j){
         if(!r.ok){
           var m=(j&&j.error&&j.error.message)||("HTTP "+r.status);
-          if(r.status===429&&idx<MODELS.length-1){DEADM[MODELS[idx]]=1;idx++;return go()}
+          if(r.status===429&&idx<MODELS.length-1){DEADM[MODELS[idx]]=1;ERRS.push(MODELS[idx]+" (429): "+m.slice(0,90));idx++;return go()}
           if(o.search&&r.status===400&&/search|tool|ground/i.test(m)&&!/key/i.test(m)){o.search=false;NOSEARCH=true;return go()}
-          if((r.status===404||(r.status===400&&/model/i.test(m)&&!/key/i.test(m)))&&idx<MODELS.length-1){idx++;return go()}
-          var e=new Error(m);e.status=r.status;throw e;
+          if((r.status===404||(r.status===400&&/model/i.test(m)&&!/key/i.test(m)))&&idx<MODELS.length-1){ERRS.push(MODELS[idx]+" ("+r.status+"): "+m.slice(0,90));idx++;return go()}
+          var e=new Error(ERRS.concat([MODELS[idx]+" ("+r.status+"): "+m]).join(" | "));e.status=r.status;throw e;
         }
         var t="",ps=[];
         try{ps=j.candidates[0].content.parts}catch(x){}
@@ -600,11 +653,11 @@ function gem(prompt,o){
 }
 function errMsg(e){
   var m=String(e&&e.message||e);
-  if(e&&e.status===429)return "kuota atau batas kecepatan Gemini habis untuk semua model. Pesan Google: "+m.slice(0,110);
+  if(e&&e.status===429)return "kuota atau batas kecepatan Gemini habis untuk semua model. Pesan Google: "+m.slice(0,300);
   if(/api key|API_KEY|invalid/i.test(m)&&e.status)return "API key tidak valid";
   if(e&&e.status===403)return "key ditolak (cek pembatasan key di Google AI Studio)";
   if(/Failed to fetch|NetworkError|Load failed/i.test(m))return "tidak bisa menghubungi Gemini (cek internet)";
-  return m.slice(0,120);
+  return m.slice(0,300);
 }
 function parseJ(t){
   t=t.replace(/```json|```/g,"");
@@ -613,11 +666,11 @@ function parseJ(t){
 }
 function prompt1(text,lang,sg,tgt){
   var TL=(tgt||lang)==="id"?"Indonesian":"English";
-  return "You are a YouTube and Facebook SEO researcher. Below is the script of a short vertical video (script language: "+(lang==="id"?"Indonesian":"English")+"). Use Google Search to do real research, then reply in plain text, under 350 words, with these sections:\nTOPIC: exactly what this video is about and its specific angle.\nFACT CHECK: main factual claims in the script that look wrong, outdated or unverifiable (write NONE if all fine).\nSEARCH PHRASES: concrete phrases people really search for on this topic in "+TL+(tgt&&tgt!==lang?" (the target audience speaks "+TL+"; the script itself is in another language)":"")+".\nCOMPETITOR ANGLES: how the top YouTube and Shorts videos on this topic word their titles.\nUNIQUE HOOK: what makes THIS script different from those.\n\nReal YouTube autocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nSCRIPT:\n"+text.slice(0,6000);
+  return "You are a YouTube and Facebook SEO researcher. Below is the script of a short vertical video (script language: "+(lang==="id"?"Indonesian":"English")+"). Use Google Search to do real research, then reply in plain text, under 350 words, with these sections:\nTOPIC: exactly what this video is about and its specific angle.\nFACT CHECK: main factual claims in the script that look wrong, outdated or unverifiable (write NONE if all fine).\nSEARCH PHRASES: concrete phrases people really search for on this topic in "+TL+(tgt&&tgt!==lang?" (the target audience speaks "+TL+"; the script itself is in another language)":"")+".\nCOMPETITOR ANGLES: how the top YouTube and Shorts videos on this topic word their titles.\nUNIQUE HOOK: what makes THIS script different from those.\n\nReal YouTube autocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+(CURHEAD?"\n\nWORKING TITLE OF THE EPISODE: "+CURHEAD:"")+"\n\nSCRIPT:\n"+text.slice(0,6000);
 }
 function prompt2(text,lang,brief,sg,tgt){
   var Ln=(tgt||lang)==="id"?"Indonesian":"English";
-  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief."+(tgt&&tgt!==lang?" The script is in "+(lang==="id"?"Indonesian":"English")+": write every output in "+Ln+", adapting naturally for "+Ln+"-speaking viewers (not word for word) and keeping every fact from the script.":"")+"\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF:\n"+brief+"\n\nSCRIPT:\n"+text.slice(0,6000);
+  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief."+(tgt&&tgt!==lang?" The script is in "+(lang==="id"?"Indonesian":"English")+": write every output in "+Ln+", adapting naturally for "+Ln+"-speaking viewers (not word for word) and keeping every fact from the script.":"")+"\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF:\n"+brief+(CURHEAD?"\n\nWORKING TITLE OF THE EPISODE: "+CURHEAD:"")+"\n\nSCRIPT:\n"+text.slice(0,6000);
 }
 function hz(x,max){
   var o=[],sn={};x=x||[];
@@ -693,7 +746,8 @@ function renderAI(s){
   for(var i=0;i<f.length;i++){h+="<li><svg class=\"ic\"><use href=\"#i-dot\"/></svg><span>"+esc(f[i])+"</span></li>"}
   $("fl").innerHTML=h;$("rb").textContent=s.brief||"";
 }
-function runOne(text,hint,force,cb){
+function runOne(text,hint,force,cb,head){
+  CURHEAD=head||"";
   var sents=sentences(text);
   LANG=detectLang(text);LGX=LG[LANG];
   ents=detect(text,sents);
@@ -734,7 +788,8 @@ function runOne(text,hint,force,cb){
     });
   }
 }
-function runAuto(text,srcLang,K1,cb){
+function runAuto(text,srcLang,K1,cb,head){
+  CURHEAD=head||"";
   var tl=srcLang==="id"?"en":"id",L=LG[tl],qs=L.q(K1),left=qs.length,got=[];
   LANG=tl;LGX=L;ents=detect(text,sentences(text));
   var myEnts=ents.slice();
@@ -780,11 +835,13 @@ function finish(list){
   $("st").textContent=(AIERR?"AI gagal ("+AIERR+"), memakai versi template. ":(ai?(NOSEARCH?"Dibuat AI tanpa riset Google (model ini tidak mendukungnya). ":"Dibuat AI dari riset Google. "):"Selesai. "))+info;
   $("out").style.display="block";document.body.className="has-out";
   if(AUTOERR&&!multi)$("st").textContent+=" Versi bahasa lain gagal ("+AUTOERR+").";
+  if($("auto2").checked&&!$("sc2").value.replace(/\s/g,"")&&!multi&&SNAPS[0].mode!=="ai")$("st").textContent+=". Hasil dua bahasa butuh AI yang berhasil.";
   show(0);
   setTimeout(function(){goTo(multi?"seg":"sec-title")},80);
 }
 $("go").onclick=function(){
-  var t1=cleanScript($("sc").value),t2=cleanScript($("sc2").value);
+  var h1=extractHeading($("sc").value),h2=extractHeading($("sc2").value);
+  var t1=cleanScript(h1.body),t2=cleanScript(h2.body);
   if(t1.length<30){$("st").textContent="Tempel naskah videonya dulu ya.";return}
   var e1=detect(t1,sentences(t1)),auto=e1[0]||"";
   var cur=$("kw").value.replace(/^\s+|\s+$/g,"");
@@ -796,10 +853,10 @@ $("go").onclick=function(){
   $("st").textContent="Mengambil saran kata kunci dari YouTube...";
   $("go").disabled=true;
   runOne(t1,cur,true,function(s1){
-    if(t2.length>=30){runOne(t2,cur,false,function(s2){finish([s1,s2])});return}
-    if(s1&&s1.mode==="ai"&&$("auto2").checked){runAuto(t1,s1.lang,s1.K,function(s2){finish([s1,s2])});return}
+    if(t2.length>=30){runOne(t2,cur,false,function(s2){finish([s1,s2])},h2.head);return}
+    if(s1&&s1.mode==="ai"&&$("auto2").checked){runAuto(t1,s1.lang,s1.K,function(s2){finish([s1,s2])},h1.head);return}
     finish([s1]);
-  });
+  },h1.head);
 };
 $("cd").onclick=function(){copyText($("de").value,this)};
 $("ct").onclick=function(){copyText($("tg").value,this)};
@@ -807,6 +864,7 @@ $("ch").onclick=function(){copyText($("ht").value,this)};
 $("cf").onclick=function(){copyText($("fc").value,this)};
 $("cfh").onclick=function(){copyText($("fh").value,this)};
 $("cek").onclick=runCheck;
+$("gk").onchange=function(){loadModels()};
 $("gk").oninput=function(){store("yss2_gkey",this.value);updAM()};
 $("gm").onchange=function(){store("yss2_model",this.value);updAM()};
 $("goset").onclick=function(){goTo("view-set")};
@@ -816,8 +874,8 @@ $("gt").onclick=function(){
   var b=this,o=$("gtr");
   if(!gKey()){o.className="note tbad";o.textContent="Isi API key dulu.";return}
   b.disabled=true;b.textContent="Menguji...";o.className="note";o.textContent="";
-  gem("Reply with exactly: OK",{temp:0}).then(function(){
-    o.className="note tok";o.textContent="Terhubung. Key valid dan model menjawab."
+  loadModels().then(function(){DEADM={};LASTMODEL="";return gem("Reply with exactly: OK",{temp:0})}).then(function(){
+    o.className="note tok";o.textContent="Terhubung. Model yang menjawab: "+LASTMODEL+"."
   }).catch(function(e){
     o.className="note tbad";o.textContent="Gagal: "+errMsg(e)
   }).then(function(){b.disabled=false;b.textContent="Tes"});
@@ -834,6 +892,8 @@ function goTo(id){
   var n=document.querySelectorAll(".nav button");
   for(var i=0;i<n.length;i++){n[i].onclick=function(){goTo(this.getAttribute("data-t"))}}
 })();
+
+if(gKey())loadModels();
 </script>
 </body>
 </html>
