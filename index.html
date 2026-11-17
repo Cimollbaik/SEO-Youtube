@@ -62,6 +62,8 @@ summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);padding
 .note{font-size:13px;color:var(--muted);margin-top:10px}
 #st{margin-top:12px;min-height:20px}
 #out{display:none}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--tx);font-weight:500;margin:14px 0 0}
+.chk input{width:20px;height:20px;padding:0;margin:2px 0 0;flex:none;accent-color:#f0494c;-webkit-appearance:auto;appearance:auto}
 .banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:13px 16px;border-radius:14px;margin-bottom:18px;font-size:14px;font-weight:600}
 .banner.ai{background:rgba(43,182,122,.12);color:#6fe0ae;border:1px solid rgba(43,182,122,.3)}
 .banner.tpl{background:rgba(224,160,40,.12);color:#f0c36a;border:1px solid rgba(224,160,40,.32)}
@@ -152,7 +154,8 @@ h1{font-size:26px}
 <textarea id="sc" placeholder="Tempel naskah narasi di sini..."></textarea>
 <label for="sc2">Naskah bahasa kedua (opsional)</label>
 <textarea id="sc2" style="min-height:90px" placeholder="Punya versi bahasa lain, misalnya Indonesia atau Inggris? Tempel di sini."></textarea>
-<div class="note">Tool tidak menerjemahkan. Ia membuat satu paket SEO untuk tiap naskah yang kamu isi.</div>
+<label class="chk"><input type="checkbox" id="auto2" checked><span>Kalau naskah kedua kosong, buat versi bahasa lain (Inggris atau Indonesia) otomatis dengan AI</span></label>
+<div class="note">Butuh API key di Pengaturan. Tiap versi bahasa memakai 2 panggilan Gemini.</div>
 <label for="kw">Kata kunci utama (terisi otomatis, boleh diganti)</label>
 <div class="fld"><svg class="ic"><use href="#i-search"/></svg><input id="kw" type="text" autocapitalize="off" autocorrect="off"></div>
 <div class="note" id="amw"><span id="am"></span> <button class="lnk" id="goset">Buka Pengaturan</button></div>
@@ -394,7 +397,7 @@ function score(t,k){
   return Math.min(100,s);
 }
 
-var LASTT=[],LASTF=[],LASTB="",SNAPS=[],CUR=0,AIDEAD=false,AIERR="",NOSEARCH=false;
+var DEADM={},LASTMODEL="",AUTOERR="",LASTT=[],LASTF=[],LASTB="",SNAPS=[],CUR=0,AIDEAD=false,AIERR="",NOSEARCH=false;
 function renderSugg(sugg){
   var sg=$("sg");sg.innerHTML="";
   if(!sugg.length){sg.innerHTML='<div class="note">Saran kata kunci tidak bisa diambil (internet bermasalah atau halaman dibuka dari preview). Hasil lain tetap dibuat dari naskahmu.</div>'}
@@ -529,7 +532,7 @@ function runCheck(){
   $("cr").innerHTML=res.join("");
 }
 
-$("gk").value=load("yss2_gkey","");$("gm").value=load("yss2_model","gemini-3.5-flash");if(!$("gm").value)$("gm").value="gemini-3.5-flash";updAM();
+$("auto2").checked=load("yss2_auto2","1")==="1";$("gk").value=load("yss2_gkey","");$("gm").value=load("yss2_model","gemini-3.5-flash");if(!$("gm").value)$("gm").value="gemini-3.5-flash";updAM();
 $("se").value=load("yss2_series","");
 $("mu").value=load("yss2_music","");
 $("se").onchange=function(){store("yss2_series",this.value)};
@@ -558,7 +561,7 @@ $("lt1").onclick=function(){saveCur();show(1)};
 
 function modelChain(){
   var all=[$("gm").value,"gemini-3.5-flash","gemini-3.1-flash-lite","gemini-3-flash-preview","gemini-2.5-flash"],o=[],s={};
-  for(var i=0;i<all.length;i++){if(all[i]&&!s[all[i]]){s[all[i]]=1;o.push(all[i])}}
+  for(var i=0;i<all.length;i++){if(all[i]&&!s[all[i]]&&!DEADM[all[i]]){s[all[i]]=1;o.push(all[i])}}
   return o;
 }
 function gKey(){return $("gk").value.replace(/\s+/g,"")}
@@ -579,6 +582,7 @@ function gem(prompt,o){
       return r.json().then(function(j){
         if(!r.ok){
           var m=(j&&j.error&&j.error.message)||("HTTP "+r.status);
+          if(r.status===429&&idx<MODELS.length-1){DEADM[MODELS[idx]]=1;idx++;return go()}
           if(o.search&&r.status===400&&/search|tool|ground/i.test(m)&&!/key/i.test(m)){o.search=false;NOSEARCH=true;return go()}
           if((r.status===404||(r.status===400&&/model/i.test(m)&&!/key/i.test(m)))&&idx<MODELS.length-1){idx++;return go()}
           var e=new Error(m);e.status=r.status;throw e;
@@ -587,6 +591,7 @@ function gem(prompt,o){
         try{ps=j.candidates[0].content.parts}catch(x){}
         for(var i=0;i<ps.length;i++){if(ps[i].text)t+=ps[i].text}
         if(!t)throw new Error("Jawaban kosong dari Gemini");
+        LASTMODEL=MODELS[idx];
         return t;
       });
     });
@@ -595,7 +600,7 @@ function gem(prompt,o){
 }
 function errMsg(e){
   var m=String(e&&e.message||e);
-  if(e&&e.status===429)return "kuota Gemini habis atau terlalu cepat, coba lagi sebentar";
+  if(e&&e.status===429)return "kuota atau batas kecepatan Gemini habis untuk semua model. Pesan Google: "+m.slice(0,110);
   if(/api key|API_KEY|invalid/i.test(m)&&e.status)return "API key tidak valid";
   if(e&&e.status===403)return "key ditolak (cek pembatasan key di Google AI Studio)";
   if(/Failed to fetch|NetworkError|Load failed/i.test(m))return "tidak bisa menghubungi Gemini (cek internet)";
@@ -606,12 +611,13 @@ function parseJ(t){
   var i=t.indexOf("{"),j=t.lastIndexOf("}");
   return JSON.parse(t.slice(i,j+1));
 }
-function prompt1(text,lang,sg){
-  return "You are a YouTube and Facebook SEO researcher. Below is the script of a short vertical video (script language: "+(lang==="id"?"Indonesian":"English")+"). Use Google Search to do real research, then reply in plain text, under 350 words, with these sections:\nTOPIC: exactly what this video is about and its specific angle.\nFACT CHECK: main factual claims in the script that look wrong, outdated or unverifiable (write NONE if all fine).\nSEARCH PHRASES: concrete phrases people really search for on this topic"+(lang==="id"?" (Indonesian and English)":"")+".\nCOMPETITOR ANGLES: how the top YouTube and Shorts videos on this topic word their titles.\nUNIQUE HOOK: what makes THIS script different from those.\n\nReal YouTube autocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nSCRIPT:\n"+text.slice(0,6000);
+function prompt1(text,lang,sg,tgt){
+  var TL=(tgt||lang)==="id"?"Indonesian":"English";
+  return "You are a YouTube and Facebook SEO researcher. Below is the script of a short vertical video (script language: "+(lang==="id"?"Indonesian":"English")+"). Use Google Search to do real research, then reply in plain text, under 350 words, with these sections:\nTOPIC: exactly what this video is about and its specific angle.\nFACT CHECK: main factual claims in the script that look wrong, outdated or unverifiable (write NONE if all fine).\nSEARCH PHRASES: concrete phrases people really search for on this topic in "+TL+(tgt&&tgt!==lang?" (the target audience speaks "+TL+"; the script itself is in another language)":"")+".\nCOMPETITOR ANGLES: how the top YouTube and Shorts videos on this topic word their titles.\nUNIQUE HOOK: what makes THIS script different from those.\n\nReal YouTube autocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nSCRIPT:\n"+text.slice(0,6000);
 }
-function prompt2(text,lang,brief,sg){
-  var Ln=lang==="id"?"Indonesian":"English";
-  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief.\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF:\n"+brief+"\n\nSCRIPT:\n"+text.slice(0,6000);
+function prompt2(text,lang,brief,sg,tgt){
+  var Ln=(tgt||lang)==="id"?"Indonesian":"English";
+  return "Write SEO metadata for a YouTube Short and a Facebook Reel in "+Ln+", using the script and the research brief."+(tgt&&tgt!==lang?" The script is in "+(lang==="id"?"Indonesian":"English")+": write every output in "+Ln+", adapting naturally for "+Ln+"-speaking viewers (not word for word) and keeping every fact from the script.":"")+"\nRules:\n- Everything must be grounded in the script. Do not invent facts or numbers. Do not repeat claims the brief marked as wrong.\n- Titles must reflect THIS script's specific hook and angle. Never use generic template titles such as 'X explained simply' or 'Everything you need to know about X'.\n- 8 titles, each max 70 characters (hard max 100), main keyword in the first 40 characters when natural, no false clickbait, varied angles (curiosity, question, fact-led, benefit). For each give why: a reason of max 12 words in Indonesian.\n- description: the first 150 characters must contain the keyword and the hook; then 2 to 4 short paragraphs paraphrasing the content naturally; 700 to 1500 characters total; end with a call to subscribe. No hashtags, no music credits, no links.\n- tags: 12 to 18 lowercase search phrases mixing broad and long-tail, based on the research phrases and suggestions, total under 450 characters.\n- hashtags: 3 to 5, the first three most important. fbCaption: first 125 characters hook with keyword, 2 to 4 short sentences, end with a question that invites comments, no links, no emoji. fbHashtags: 3 to 5.\n- keyword: the primary search phrase. factNotes: array of short Indonesian sentences about script claims that look wrong or unverifiable, empty array if none.\nReturn ONLY JSON with keys: keyword, titles (array of {t, why}), description, tags, hashtags, fbCaption, fbHashtags, factNotes.\n\nAutocomplete suggestions: "+(sg.slice(0,12).join("; ")||"none")+"\n\nRESEARCH BRIEF:\n"+brief+"\n\nSCRIPT:\n"+text.slice(0,6000);
 }
 function hz(x,max){
   var o=[],sn={};x=x||[];
@@ -695,7 +701,7 @@ function runOne(text,hint,force,cb){
   if(!k){cb(null);return}
   K=k;
   var qs=LGX.q(K),left=qs.length,got=[],lang=LANG,L=LGX,myEnts=ents.slice();
-  function done(m){var s=snapNow();s.lang=lang;s.ents=myEnts;s.mode=m;s.err=AIERR;s.model=$("gm").options[$("gm").selectedIndex].text;s.nosearch=NOSEARCH;cb(s)}
+  function done(m){var s=snapNow();s.lang=lang;s.ents=myEnts;s.mode=m;s.err=AIERR;s.model=LASTMODEL||$("gm").options[$("gm").selectedIndex].text;s.nosearch=NOSEARCH;cb(s)}
   for(var i=0;i<qs.length;i++){
     fetchSugg(qs[i],function(r){
       got=got.concat(r);left--;
@@ -728,6 +734,36 @@ function runOne(text,hint,force,cb){
     });
   }
 }
+function runAuto(text,srcLang,K1,cb){
+  var tl=srcLang==="id"?"en":"id",L=LG[tl],qs=L.q(K1),left=qs.length,got=[];
+  LANG=tl;LGX=L;ents=detect(text,sentences(text));
+  var myEnts=ents.slice();
+  for(var i=0;i<qs.length;i++){
+    fetchSugg(qs[i],function(r){
+      got=got.concat(r);left--;
+      if(left!==0)return;
+      var seen={},o=[],kl=K1.toLowerCase();
+      for(var j=0;j<got.length;j++){
+        var g=got[j].toLowerCase();
+        if(!seen[g]&&g.indexOf(kl)>-1){seen[g]=1;o.push(got[j])}
+      }
+      sugg=o.slice(0,20);
+      $("st").textContent="Membuat versi "+langName(tl)+" dengan AI...";
+      var brief="";
+      gem(prompt1(text,srcLang,sugg,tl),{search:true,temp:0.3}).then(function(b){
+        brief=b;
+        return gem(prompt2(text,srcLang,b,sugg,tl),{json:true,temp:0.8});
+      }).then(function(t){
+        var r2=parseJ(t);
+        LGX=L;LANG=tl;K=K1;LASTF=[];LASTB="";
+        applyAI(r2,L);
+        LASTB=brief||"(ringkasan kosong)";
+        var s=snapNow();s.lang=tl;s.ents=myEnts;s.mode="ai";s.err="";s.model=LASTMODEL;s.nosearch=NOSEARCH;
+        cb(s);
+      }).catch(function(e){AUTOERR=langName(tl)+": "+errMsg(e);cb(null)});
+    });
+  }
+}
 function langName(l){return l==="id"?"Indonesia":"English"}
 function finish(list){
   SNAPS=[];
@@ -743,6 +779,7 @@ function finish(list){
   for(var j=0;j<SNAPS.length;j++){info+=(j?" | ":"")+langName(SNAPS[j].lang)+": "+SNAPS[j].ents.slice(0,3).join(", ")}
   $("st").textContent=(AIERR?"AI gagal ("+AIERR+"), memakai versi template. ":(ai?(NOSEARCH?"Dibuat AI tanpa riset Google (model ini tidak mendukungnya). ":"Dibuat AI dari riset Google. "):"Selesai. "))+info;
   $("out").style.display="block";document.body.className="has-out";
+  if(AUTOERR&&!multi)$("st").textContent+=" Versi bahasa lain gagal ("+AUTOERR+").";
   show(0);
   setTimeout(function(){goTo(multi?"seg":"sec-title")},80);
 }
@@ -754,13 +791,14 @@ $("go").onclick=function(){
   if(!cur||cur===lastAuto){cur=auto;$("kw").value=auto}
   lastAuto=auto;
   if(!cur){$("st").textContent="Kata kunci utama belum terdeteksi. Ketik manual di kolom kata kunci.";return}
-  AIDEAD=false;AIERR="";NOSEARCH=false;store("yss2_gkey",$("gk").value);store("yss2_model",$("gm").value);
+  AIDEAD=false;AIERR="";AUTOERR="";NOSEARCH=false;LASTMODEL="";DEADM={};store("yss2_auto2",$("auto2").checked?"1":"0");store("yss2_gkey",$("gk").value);store("yss2_model",$("gm").value);
   store("yss2_series",$("se").value);store("yss2_music",$("mu").value);
   $("st").textContent="Mengambil saran kata kunci dari YouTube...";
   $("go").disabled=true;
   runOne(t1,cur,true,function(s1){
-    if(t2.length<30){finish([s1]);return}
-    runOne(t2,cur,false,function(s2){finish([s1,s2])});
+    if(t2.length>=30){runOne(t2,cur,false,function(s2){finish([s1,s2])});return}
+    if(s1&&s1.mode==="ai"&&$("auto2").checked){runAuto(t1,s1.lang,s1.K,function(s2){finish([s1,s2])});return}
+    finish([s1]);
   });
 };
 $("cd").onclick=function(){copyText($("de").value,this)};
